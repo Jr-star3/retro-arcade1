@@ -15,6 +15,9 @@ const { body, validationResult } = require('express-validator');
 const helmet = require('helmet');
 const app = express();
 
+// Debug logging for email credentials
+console.log('DEBUG: EMAIL_USER:', process.env.EMAIL_USER);
+console.log('DEBUG: EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
 // Configure your email transporter (credentials from .env only)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
