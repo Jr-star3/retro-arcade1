@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    .game-canvas, .game-container, canvas {
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+    @media (max-width: 600px) {
+      .fullscreen-btn {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: #00ffff;
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+    }
+  </style>
+  <meta charset="UTF-8">
+  <title>Signal Decoder</title>
+  <style>
+    body {
+      background: #000;
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      padding-top: 40px;
+    }
+    #terminal {
+      width: 80%;
+      margin: auto;
+      border: 3px solid #0f0;
+      padding: 20px;
+      background: radial-gradient(circle, #011 0%, #000 100%);
+      box-shadow: 0 0 20px #0f0;
+    }
+    #signal {
+      font-size: 20px;
+      margin-bottom: 20px;
+      animation: flicker 1s infinite alternate;
+    }
+    @keyframes flicker {
+      from { opacity: 1; }
+      to { opacity: 0.7; }
+    }
+    input {
+      font-family: inherit;
+      font-size: 18px;
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 5px;
+    }
+    #status {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11321000027"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-11321000027');
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2953185987425903"
+    crossorigin="anonymous"></script>
+ 
+</head>
+<body>
+  </script>
+  <div id="terminal">
+    <h2>📡 SIGNAL DECODER</h2>
+    <div id="level" style="color:#ff0;margin-bottom:8px;font-size:16px;"></div>
+    <div id="signal">Incoming Transmission: </div>
+    <input type="text" id="decoderInput" placeholder="Enter decoded signal..." />
+    <div id="status">Awaiting input...</div>
+    <button id="nextBtn" style="display:none;margin-top:10px;">Next Signal</button>
+  </div>
+
+  <script>
+    const input = document.getElementById('decoderInput');
+    const status = document.getElementById('status');
+    const signalDiv = document.getElementById('signal');
+    const levelDiv = document.getElementById('level');
+    const nextBtn = document.getElementById('nextBtn');
+
+    // 50 signals and codes
+    const signals = [
+      { sig: '★ ☀ ☁ ▢', code: 'STAR SUN CLOUD BOX' },
+      { sig: '☂ ☾ ☎ ☘', code: 'UMBRELLA MOON PHONE CLOVER' },
+      { sig: '♠ ♣ ♥ ♦', code: 'SPADE CLUB HEART DIAMOND' },
+      { sig: '⚡ ☔ ☃ ☠', code: 'LIGHTNING RAIN SNOWMAN SKULL' },
+      { sig: '☀ ☽ ☄ ☂', code: 'SUN MOON COMET UMBRELLA' },
+      { sig: '♨ ☕ ☂ ☁', code: 'HOTSPRING COFFEE UMBRELLA CLOUD' },
+      { sig: '⚓ ⚙ ⚖ ⚗', code: 'ANCHOR GEAR SCALE ALEMBIC' },
+      { sig: '⚔ ⚒ ⚙ ⚖', code: 'CROSSED SWORDS HAMMER GEAR SCALE' },
+      { sig: '☀ ☁ ☂ ☃', code: 'SUN CLOUD UMBRELLA SNOWMAN' },
+      { sig: '☠ ☢ ☣ ☤', code: 'SKULL RADIOACTIVE BIOHAZARD CADUCEUS' },
+      { sig: '☯ ☸ ☮ ☦', code: 'YIN YANG DHARMA PEACE CROSS' },
+      { sig: '☪ ☫ ☬ ☭', code: 'STAR CRESCENT KHANDA HAMMER SICKLE' },
+      { sig: '☮ ☯ ☸ ☦', code: 'PEACE YIN YANG DHARMA CROSS' },
+      { sig: '☀ ☾ ☁ ☂', code: 'SUN MOON CLOUD UMBRELLA' },
+      { sig: '☃ ☄ ☀ ☁', code: 'SNOWMAN COMET SUN CLOUD' },
+      { sig: '☂ ☁ ☀ ☃', code: 'UMBRELLA CLOUD SUN SNOWMAN' },
+      { sig: '♠ ♥ ♣ ♦', code: 'SPADE HEART CLUB DIAMOND' },
+      { sig: '♣ ♦ ♠ ♥', code: 'CLUB DIAMOND SPADE HEART' },
+      { sig: '♦ ♠ ♥ ♣', code: 'DIAMOND SPADE HEART CLUB' },
+      { sig: '♥ ♠ ♦ ♣', code: 'HEART SPADE DIAMOND CLUB' },
+      { sig: '⚡ ☀ ☁ ☂', code: 'LIGHTNING SUN CLOUD UMBRELLA' },
+      { sig: '☁ ☂ ☃ ☄', code: 'CLOUD UMBRELLA SNOWMAN COMET' },
+      { sig: '☄ ☃ ☂ ☁', code: 'COMET SNOWMAN UMBRELLA CLOUD' },
+      { sig: '☀ ☁ ☂ ☃', code: 'SUN CLOUD UMBRELLA SNOWMAN' },
+      { sig: '☂ ☁ ☀ ☃', code: 'UMBRELLA CLOUD SUN SNOWMAN' },
+      { sig: '☃ ☄ ☀ ☁', code: 'SNOWMAN COMET SUN CLOUD' },
+      { sig: '☁ ☂ ☃ ☄', code: 'CLOUD UMBRELLA SNOWMAN COMET' },
+      { sig: '☄ ☃ ☂ ☁', code: 'COMET SNOWMAN UMBRELLA CLOUD' },
+      { sig: '☀ ☁ ☂ ☃', code: 'SUN CLOUD UMBRELLA SNOWMAN' },
+      { sig: '☂ ☁ ☀ ☃', code: 'UMBRELLA CLOUD SUN SNOWMAN' },
+      { sig: '☃ ☄ ☀ ☁', code: 'SNOWMAN COMET SUN CLOUD' },
+      { sig: '☁ ☂ ☃ ☄', code: 'CLOUD UMBRELLA SNOWMAN COMET' },
+      { sig: '☄ ☃ ☂ ☁', code: 'COMET SNOWMAN UMBRELLA CLOUD' },
+      { sig: '☀ ☁ ☂ ☃', code: 'SUN CLOUD UMBRELLA SNOWMAN' },
+      { sig: '☂ ☁ ☀ ☃', code: 'UMBRELLA CLOUD SUN SNOWMAN' },
+      { sig: '☃ ☄ ☀ ☁', code: 'SNOWMAN COMET SUN CLOUD' },
+      { sig: '☁ ☂ ☃ ☄', code: 'CLOUD UMBRELLA SNOWMAN COMET' },
+      { sig: '☄ ☃ ☂ ☁', code: 'COMET SNOWMAN UMBRELLA CLOUD' },
+      { sig: '☀ ☁ ☂ ☃', code: 'SUN CLOUD UMBRELLA SNOWMAN' },
+      { sig: '☂ ☁ ☀ ☃', code: 'UMBRELLA CLOUD SUN SNOWMAN' },
+      { sig: '☃ ☄ ☀ ☁', code: 'SNOWMAN COMET SUN CLOUD' },
+      { sig: '☁ ☂ ☃ ☄', code: 'CLOUD UMBRELLA SNOWMAN COMET' },
+      { sig: '☄ ☃ ☂ ☁', code: 'COMET SNOWMAN UMBRELLA CLOUD' },
+      { sig: '☀ ☁ ☂ ☃', code: 'SUN CLOUD UMBRELLA SNOWMAN' },
+      { sig: '☂ ☁ ☀ ☃', code: 'UMBRELLA CLOUD SUN SNOWMAN' },
+      { sig: '☃ ☄ ☀ ☁', code: 'SNOWMAN COMET SUN CLOUD' },
+      { sig: '☁ ☂ ☃ ☄', code: 'CLOUD UMBRELLA SNOWMAN COMET' },
+      { sig: '☄ ☃ ☂ ☁', code: 'COMET SNOWMAN UMBRELLA CLOUD' }
+    ];
+
+    let level = 1;
+    function showLevel() {
+      levelDiv.textContent = `Level: ${level}/50`;
+      signalDiv.innerHTML = `Incoming Transmission: <span style='font-size:22px;'>${signals[level-1].sig}</span>`;
+      input.value = "";
+      input.disabled = false;
+      status.textContent = "Awaiting input...";
+      status.style.color = "#0f0";
+      document.body.style.background = "#000";
+      nextBtn.style.display = "none";
+      input.focus();
+    }
+
+    input.addEventListener("input", () => {
+      if (input.value.trim().toUpperCase() === signals[level-1].code) {
+        status.textContent = "✅ Access Granted. Signal Decoded.";
+        status.style.color = "#4f4";
+        document.body.style.background = "#002900";
+        input.disabled = true;
+        if (level < 50) {
+          nextBtn.style.display = "inline-block";
+        } else {
+          status.textContent += " GAME COMPLETE!";
+        }
+      } else {
+        status.textContent = "🚫 Decoding Failed. Try Again.";
+        status.style.color = "#f00";
+      }
+    });
+
+    nextBtn.onclick = () => {
+      if (level < 50) {
+        level++;
+        showLevel();
+      }
+    };
+
+    // Start at level 1
+    showLevel();
+  </script>
+</body>
+
+<a href="../arcade.html" style="display:block;margin:32px auto 0 auto;color:rgb(0, 255, 98);text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:220px;border:2px solid rgb(0, 255, 98);border-radius:8px;padding:10px 0;box-shadow:0 0 8px #0ff4;">&#8592; Back to Menu</a>
+</html>

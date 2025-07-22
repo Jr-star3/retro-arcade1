@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    .game-canvas, .game-container, canvas {
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+    @media (max-width: 600px) {
+      .fullscreen-btn {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: #00ffff;
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Wild Logic Lab</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #001133 0%, #000 100%);
+      color: #0ff;
+      font-family: 'Press Start 2P', monospace, monospace;
+      text-align: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .game-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 20px;
+      padding: 32px 24px 24px 24px;
+      box-shadow: 0 0 30px #0ff4, 0 0 8px #000a;
+      border: 2px solid #0ff;
+      position: relative;
+    }
+    h1 {
+      margin-bottom: 18px;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff8;
+      font-size: 22px;
+      letter-spacing: 2px;
+    }
+    .scoreboard {
+      margin-bottom: 10px;
+      font-size: 10px;
+      background: #111;
+      border: 2px solid #0ff;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: #fff;
+      box-shadow: 0 0 8px #0ff4;
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+    .level-selector {
+      margin: 10px 0 18px 0;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .level-btn {
+      background: #222;
+      color: #0ff;
+      border: 1px solid #0ff;
+      border-radius: 4px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 4px;
+    }
+    .level-btn.active {
+      background: #0ff;
+      color: #000;
+      box-shadow: 0 0 8px #0ff;
+    }
+    .option {
+      display: inline-block;
+      background: #222;
+      border: 2px solid #0ff;
+      padding: 14px 18px;
+      margin: 8px 8px 8px 0;
+      font-size: 16px;
+      cursor: pointer;
+      min-width: 120px;
+      color: #0ff;
+      border-radius: 8px;
+      transition: all 0.2s, box-shadow 0.3s;
+      box-shadow: 0 0 8px #0ff2;
+      outline: none;
+      user-select: none;
+    }
+    .option.selected, .option:focus {
+      background: #0ff;
+      color: #000;
+      border-color: #ff0;
+      box-shadow: 0 0 16px #ff0, 0 0 8px #0ff8;
+      animation: selectPulse 0.4s;
+    }
+    .option.correct {
+      background: #0f0;
+      color: #000;
+      border-color: #0f0;
+      animation: correctPulse 0.6s;
+    }
+    .option.incorrect {
+      background: #f00;
+      color: #fff;
+      border-color: #f00;
+      animation: incorrectPulse 0.6s;
+    }
+    @keyframes selectPulse {
+      0% { box-shadow: 0 0 0 #ff0; }
+      50% { box-shadow: 0 0 24px #ff0; }
+      100% { box-shadow: 0 0 8px #0ff8; }
+    }
+    @keyframes correctPulse {
+      0% { box-shadow: 0 0 0 #0f0; }
+      50% { box-shadow: 0 0 24px #0f0; }
+      100% { box-shadow: 0 0 8px #0ff8; }
+    }
+    @keyframes incorrectPulse {
+      0% { box-shadow: 0 0 0 #f00; }
+      50% { box-shadow: 0 0 24px #f00; }
+      100% { box-shadow: 0 0 8px #0ff8; }
+    }
+    .achievements {
+      background: #111;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      padding: 8px 16px;
+      margin: 10px 0;
+      font-size: 9px;
+      color: #0f0;
+      text-align: center;
+      min-height: 32px;
+    }
+    .achievement {
+      display: inline-block;
+      margin: 2px;
+      padding: 3px 6px;
+      background: #333;
+      border: 1px solid #0f0;
+      border-radius: 4px;
+      opacity: 0.3;
+      transition: all 0.3s ease;
+    }
+    .achievement.unlocked {
+      background: #0f0;
+      color: #222;
+      opacity: 1;
+      animation: achievementUnlock 0.8s ease-in-out;
+    }
+    @keyframes achievementUnlock {
+      0% { transform: scale(1); box-shadow: 0 0 4px #0f0; }
+      50% { transform: scale(1.2); box-shadow: 0 0 16px #0f0; }
+      100% { transform: scale(1); box-shadow: 0 0 8px #0f0; }
+    }
+    #output {
+      margin-top: 16px;
+      color: #ccc;
+      font-size: 12px;
+      min-height: 24px;
+    }
+    .fun-fact {
+      margin-top: 10px;
+      color: #ff0;
+      font-size: 10px;
+      background: #111;
+      border: 1px solid #ff0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: inline-block;
+      min-width: 180px;
+      box-shadow: 0 0 8px #ff04;
+    }
+    .instructions {
+      font-size: 10px;
+      color: #0ff;
+      margin: 20px 0;
+      line-height: 1.6;
+      background: rgba(0, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .menu-link {
+      color: #0ff;
+      display: block;
+      margin: 32px auto 0 auto;
+      text-align: center;
+      text-decoration: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      max-width: 220px;
+      border: 2px solid #0ff;
+      border-radius: 8px;
+      padding: 10px 0;
+      box-shadow: 0 0 8px #0ff4;
+      transition: all 0.3s;
+    }
+    .menu-link:hover {
+      background: rgba(0, 255, 255, 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 255, 255, 0.6);
+    }
+    @media (max-width: 600px) {
+      .game-container { padding: 12px; margin: 8px; }
+      .option { font-size: 13px; min-width: 80px; padding: 10px 8px; }
+      h1 { font-size: 16px; }
+      .scoreboard { font-size: 8px; }
+      .level-btn { font-size: 8px; padding: 4px 7px; }
+    }
+  </style>
+
+   <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11321000027"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-11321000027');
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2953185987425903"
+    crossorigin="anonymous"></script>
+
+</head>
+<body>
+  <button class="fullscreen-btn" id="fullscreenBtn" style="display:none;">Fullscreen</button>
+  <script>
+    // Prevent touch scrolling and enable fullscreen on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+      const gameCanvas = document.querySelector('canvas');
+      if (gameCanvas) {
+        gameCanvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+      }
+      // Show fullscreen button on mobile
+      if (window.innerWidth < 700) {
+        const btn = document.getElementById('fullscreenBtn');
+        if (btn && gameCanvas) {
+          btn.style.display = 'block';
+          btn.addEventListener('click', function() {
+            if (gameCanvas.requestFullscreen) {
+              gameCanvas.requestFullscreen();
+            } else if (gameCanvas.webkitRequestFullscreen) {
+              gameCanvas.webkitRequestFullscreen();
+            } else if (gameCanvas.msRequestFullscreen) {
+              gameCanvas.msRequestFullscreen();
+            }
+          });
+        }
+      }
+    });
+  </script>
+  <div class="game-container" role="main">
+    <h1>🧠 Wild Logic Lab</h1>
+    <div class="scoreboard">
+      <span id="progress">Level 1/50, Puzzle 1/5</span>
+      <span id="streak">Streak: 0</span>
+      <span id="achievementsLabel">Achievements</span>
+    </div>
+    <div class="level-selector" id="levelSelector"></div>
+    <p id="clue">Clue loading...</p>
+    <div id="options" role="listbox" aria-label="Answer options"></div>
+    <div style="margin:10px 0;">
+      <button class="level-btn" onclick="compile()" id="compileBtn">🧪 Compile</button>
+      <button class="level-btn" onclick="hint()" id="hintBtn">💡 Hint</button>
+      <button class="level-btn" onclick="nextLevel()" id="nextBtn">⏭️ Next Level</button>
+    </div>
+    <div class="achievements" id="achievementList">
+      <span class="achievement" id="achv_streak">Streak 5</span>
+      <span class="achievement" id="achv_perfect">Perfect Level</span>
+      <span class="achievement" id="achv_fast">Speedster</span>
+      <span class="achievement" id="achv_all">All Levels</span>
+    </div>
+    <div id="output">Choose the correct animal based on the clue.</div>
+    <div class="fun-fact" id="funFact" style="display:none;"></div>
+  </div>
+
+  <script>
+    // Expanded animal pool for more variety
+    const animalPool = [
+      { clue: "Sleeps upside-down, flies, and uses sonar.", answer: "🦇 Bat", hint: "It uses echolocation." },
+      { clue: "Has black and white stripes and lives in herds.", answer: "🦓 Zebra", hint: "It’s often found on African plains." },
+      { clue: "Roars, has sharp claws, and orange fur.", answer: "🐅 Tiger", hint: "Not a lion." },
+      { clue: "Silent at night, has large eyes and flies.", answer: "🦉 Owl", hint: "Can rotate its head." },
+      { clue: "Largest land animal with trunk and tusks.", answer: "🐘 Elephant", hint: "It’s known for strong memory." },
+      { clue: "King of the jungle, has a mane.", answer: "🦁 Lion", hint: "Famous for its roar." },
+      { clue: "Tallest animal, eats leaves from trees.", answer: "🦒 Giraffe", hint: "Has a very long neck." },
+      { clue: "Black and white bird that can't fly.", answer: "🐧 Penguin", hint: "Lives in cold places." },
+      { clue: "Spins webs and has eight legs.", answer: "🕷️ Spider", hint: "Not an insect." },
+      { clue: "Jumps and has a pouch for its young.", answer: "🦘 Kangaroo", hint: "Native to Australia." },
+      { clue: "Has a shell and moves slowly.", answer: "🐢 Turtle", hint: "Can live on land or in water." },
+      { clue: "Has a horn on its nose, thick skin.", answer: "🦏 Rhinoceros", hint: "Name means 'nose horn'." },
+      { clue: "Pink bird that stands on one leg.", answer: "🦩 Flamingo", hint: "Famous for its color and stance." },
+      { clue: "Large bear, eats bamboo.", answer: "🐼 Panda", hint: "Native to China." },
+      { clue: "Has a curly tail, loves mud.", answer: "🐖 Pig", hint: "Oinks and rolls in dirt." },
+      { clue: "Has a trunk, but is not an elephant.", answer: "🐘 Elephant", hint: "Already used, but for variety." },
+      { clue: "Has a shell, lives in the sea, moves sideways.", answer: "🦀 Crab", hint: "Walks sideways on the beach." },
+      { clue: "Long neck, swims in ponds, says 'honk'.", answer: "🦢 Swan", hint: "Elegant white bird." },
+      { clue: "Has a mane, but is not a lion.", answer: "🐴 Horse", hint: "Ridden by cowboys." },
+      { clue: "Has a pouch, but is not a kangaroo.", answer: "🦡 Badger", hint: "Black and white, digs burrows." },
+      { clue: "Has a bushy tail, climbs trees, eats nuts.", answer: "🐿️ Squirrel", hint: "Common in parks." },
+      { clue: "Has a shell, is very slow.", answer: "🐌 Snail", hint: "Leaves a slimy trail." },
+      { clue: "Has eight arms, lives in the sea.", answer: "🐙 Octopus", hint: "Very intelligent mollusk." },
+      { clue: "Has black spots, runs fast.", answer: "🐆 Leopard", hint: "Not a cheetah." },
+      { clue: "Has a hump, lives in the desert.", answer: "🐫 Camel", hint: "Stores water in its hump." },
+      { clue: "Has a big nose, likes cheese.", answer: "🐭 Mouse", hint: "Small and squeaky." },
+      { clue: "Has a long tail, likes bananas.", answer: "🐒 Monkey", hint: "Swings from trees." },
+      { clue: "Has a shell, is a pet, lives in a tank.", answer: "🐠 Fish", hint: "Breathes underwater." },
+      { clue: "Has a beak, can talk, colorful feathers.", answer: "🦜 Parrot", hint: "Can mimic human speech." },
+      { clue: "Has a horn, magical, not real.", answer: "🦄 Unicorn", hint: "Mythical horse." },
+      { clue: "Has a pouch, climbs trees, Australian.", answer: "🐨 Koala", hint: "Eats eucalyptus leaves." },
+      { clue: "Has a shell, is a crustacean, red when cooked.", answer: "🦞 Lobster", hint: "Lives on the ocean floor." },
+      { clue: "Has a shell, is a reptile, snaps jaws.", answer: "🐊 Crocodile", hint: "Lives in rivers." },
+      { clue: "Has a mane, is striped, not a horse.", answer: "🦓 Zebra", hint: "Already used, but for variety." },
+      { clue: "Has a trunk, is gray, very large.", answer: "🐘 Elephant", hint: "Already used, but for variety." },
+      { clue: "Has a shell, is a pet, slow.", answer: "🐢 Turtle", hint: "Already used, but for variety." },
+      { clue: "Has a pouch, hops, not a kangaroo.", answer: "🦡 Badger", hint: "Already used, but for variety." },
+      { clue: "Has a bushy tail, is red, clever.", answer: "🦊 Fox", hint: "Known for cunning." },
+      { clue: "Has a shell, is a sea animal, not a crab.", answer: "🐚 Shell", hint: "Not an animal, but a shell." },
+      { clue: "Has a trunk, is not an elephant, is a toy.", answer: "🐘 Elephant", hint: "Already used, but for variety." },
+      { clue: "Has a shell, is a sea animal, not a turtle.", answer: "🐚 Shell", hint: "Not an animal, but a shell." },
+      { clue: "Has a pouch, is a marsupial, not a koala.", answer: "🦘 Kangaroo", hint: "Already used, but for variety." },
+      { clue: "Has a shell, is a crustacean, not a lobster.", answer: "🦀 Crab", hint: "Already used, but for variety." },
+      { clue: "Has a trunk, is a cartoon character.", answer: "🐘 Elephant", hint: "Already used, but for variety." },
+      { clue: "Has a shell, is a cartoon character.", answer: "🐢 Turtle", hint: "Already used, but for variety." },
+      { clue: "Has a pouch, is a cartoon character.", answer: "🦘 Kangaroo", hint: "Already used, but for variety." },
+      { clue: "Has a bushy tail, is a cartoon character.", answer: "🐿️ Squirrel", hint: "Already used, but for variety." },
+      { clue: "Has a shell, is a cartoon character.", answer: "🐌 Snail", hint: "Already used, but for variety." }
+    ];
+
+    // Generate 50 levels, each with 5 unique puzzles
+    const levels = Array.from({length: 50}, (_, i) => {
+      // Shuffle animalPool and pick 5 unique puzzles for this level
+      let shuffled = animalPool.slice().sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 5);
+    });
+
+    let currentLevel = 0;
+    let currentPuzzleIndex = 0;
+    let selected = null;
+
+    // --- Achievements, streak, fun facts, and sound ---
+    let streak = 0;
+    let achievements = {
+      streak: false,
+      perfect: false,
+      fast: false,
+      all: false
+    };
+    let levelTimes = Array(50).fill(0);
+    let levelStartTime = 0;
+let funFacts = [
+  "Bats are the only mammals capable of true flight!",
+  "A group of flamingos is called a 'flamboyance'.",
+  "Owls can rotate their heads up to 270 degrees.",
+  "Elephants have the largest brains of any land animal.",
+  "Penguins mate for life.",
+  "A group of zebras is called a 'dazzle'.",
+  "Octopuses have three hearts.",
+  "Tigers have striped skin, not just striped fur.",
+  "A snail can sleep for three years.",
+  "Kangaroos can't walk backwards."
+];
+
+let funFactTimeout = null;
+    function playSound(type) {
+      if (!window.AudioContext && !window.webkitAudioContext) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      switch(type) {
+        case 'correct': osc.frequency.value=523; gain.gain.value=0.12; osc.start(); osc.stop(ctx.currentTime+0.18); break;
+        case 'incorrect': osc.frequency.value=110; gain.gain.value=0.12; osc.start(); osc.stop(ctx.currentTime+0.18); break;
+        case 'level': osc.frequency.value=880; gain.gain.value=0.15; osc.start(); osc.stop(ctx.currentTime+0.25); break;
+        case 'achievement': osc.frequency.value=784; gain.gain.value=0.18; osc.start(); osc.stop(ctx.currentTime+0.22); break;
+      }
+    }
+    function showFunFact() {
+      const fact = funFacts[Math.floor(Math.random()*funFacts.length)];
+      const el = document.getElementById('funFact');
+      el.textContent = `🐾 Fun Fact: ${fact}`;
+      el.style.display = 'inline-block';
+      if (funFactTimeout) clearTimeout(funFactTimeout);
+      funFactTimeout = setTimeout(()=>{
+        el.style.display='none';
+        funFactTimeout = null;
+      }, 10000);
+    }
+    function updateAchievementsDisplay() {
+      Object.keys(achievements).forEach(key => {
+        const el = document.getElementById('achv_'+key);
+        if (el) el.className = achievements[key] ? 'achievement unlocked' : 'achievement';
+      });
+    }
+    function checkAchievements() {
+      let newAch = [];
+      if (!achievements.streak && streak >= 5) { achievements.streak = true; newAch.push('Streak 5!'); }
+      if (!achievements.perfect && streak > 0 && currentPuzzleIndex === 4 && wrongThisLevel === 0) { achievements.perfect = true; newAch.push('Perfect Level!'); }
+      if (!achievements.fast && levelTimes[currentLevel] > 0 && levelTimes[currentLevel] < 20000) { achievements.fast = true; newAch.push('Speedster!'); }
+      if (!achievements.all && currentLevel === 49 && currentPuzzleIndex === 4) { achievements.all = true; newAch.push('All Levels!'); }
+      newAch.forEach((msg, i) => setTimeout(()=>{
+        document.getElementById('output').textContent = `🏅 Achievement: ${msg}`;
+        playSound('achievement');
+        updateAchievementsDisplay();
+      }, i*1200));
+    }
+    // --- End achievements, fun facts, sound ---
+
+    function updateProgress() {
+      document.getElementById('progress').textContent = `Level ${currentLevel+1}/50, Puzzle ${currentPuzzleIndex+1}/5`;
+      document.getElementById('streak').textContent = `Streak: ${streak}`;
+    }
+    function renderLevelSelector() {
+      const sel = document.getElementById('levelSelector');
+      sel.innerHTML = '';
+      for (let i=0; i<50; ++i) {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn'+(i===currentLevel?' active':'');
+        btn.textContent = i+1;
+        btn.setAttribute('aria-label', `Go to level ${i+1}`);
+        btn.onclick = ()=>loadLevel(i);
+        sel.appendChild(btn);
+      }
+    }
+    function loadLevel(levelNum = 0) {
+      currentLevel = levelNum;
+      currentPuzzleIndex = 0;
+      streak = 0;
+      wrongThisLevel = 0;
+      updateProgress();
+      renderLevelSelector();
+      document.getElementById("output").textContent = `Level ${currentLevel+1}/50: Choose the correct animal for each clue.`;
+      levelStartTime = Date.now();
+      loadPuzzle();
+      updateAchievementsDisplay();
+    }
+
+    // Store options for the current puzzle to avoid reshuffling on every render
+    let currentOptions = [];
+    function renderOptions(puzzle) {
+      // Only generate/shuffle options if this is a new puzzle or options are empty
+      if (!currentOptions.length) {
+        const opts = [puzzle.answer];
+        while (opts.length < 5) {
+          const r = animalPool[Math.floor(Math.random() * animalPool.length)].answer;
+          if (!opts.includes(r)) opts.push(r);
+        }
+        // Shuffle once per puzzle
+        currentOptions = opts.sort(() => Math.random() - 0.5);
+      }
+      const container = document.getElementById("options");
+      container.innerHTML = "";
+      currentOptions.forEach((opt, i) => {
+        const div = document.createElement("div");
+        div.className = "option";
+        div.setAttribute('tabindex', 0);
+        div.setAttribute('role', 'option');
+        div.setAttribute('aria-selected', selected === i);
+        div.textContent = opt;
+        if (selected === i) div.classList.add("selected");
+        div.onclick = () => {
+          selected = i;
+          renderOptions(puzzle);
+        };
+        div.onkeydown = (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            selected = i;
+            renderOptions(puzzle);
+          }
+        };
+        container.appendChild(div);
+      });
+      // Keyboard navigation
+      container.onkeydown = (e) => {
+        if (['ArrowLeft','ArrowUp'].includes(e.key)) {
+          selected = (selected === null ? 0 : (selected+4)%5);
+          renderOptions(puzzle);
+        } else if (['ArrowRight','ArrowDown'].includes(e.key)) {
+          selected = (selected === null ? 0 : (selected+1)%5);
+          renderOptions(puzzle);
+        } else if (e.key === 'Enter') {
+          compile();
+        }
+      };
+    }
+
+    function loadPuzzle() {
+      selected = null;
+      currentOptions = [];
+      // Only hide fun fact if it is not currently being shown (let showFunFact handle hiding)
+      if (!funFactTimeout) {
+        document.getElementById('funFact').style.display = 'none';
+      }
+      const puzzle = levels[currentLevel][currentPuzzleIndex];
+      document.getElementById("clue").textContent = `🧩 Clue: ${puzzle.clue}`;
+      renderOptions(puzzle);
+      updateProgress();
+      document.getElementById('compileBtn').focus();
+    }
+
+    let wrongThisLevel = 0;
+    function compile() {
+      const puzzle = levels[currentLevel][currentPuzzleIndex];
+      const options = document.querySelectorAll(".option");
+      if (selected === null) return;
+      const chosen = options[selected];
+      options.forEach(opt => opt.classList.remove('correct','incorrect'));
+      if (chosen && chosen.textContent === puzzle.answer) {
+        chosen.classList.add('correct');
+        playSound('correct');
+        streak++;
+        setTimeout(showFunFact, 400);
+        // Advance to next level immediately on correct answer
+        levelTimes[currentLevel] = Date.now() - levelStartTime;
+        checkAchievements();
+        if (currentLevel < 49) {
+          document.getElementById("output").textContent = `✅ Correct! ${puzzle.answer} | Next Level...`;
+          setTimeout(() => {
+            loadLevel(currentLevel + 1);
+          }, 1100);
+        } else {
+          document.getElementById("output").textContent = `� You finished all 50 levels!`;
+          achievements.all = true;
+          updateAchievementsDisplay();
+        }
+      } else {
+        chosen.classList.add('incorrect');
+        playSound('incorrect');
+        streak = 0;
+        wrongThisLevel++;
+        document.getElementById("output").textContent = `❌ Incorrect guess. Try again or use a hint!`;
+      }
+      updateProgress();
+      updateAchievementsDisplay();
+    }
+
+    function hint() {
+      const puzzle = levels[currentLevel][currentPuzzleIndex];
+      document.getElementById("output").textContent = `💡 Hint: ${puzzle.hint}`;
+      document.getElementById('hintBtn').disabled = true;
+      setTimeout(()=>{document.getElementById('hintBtn').disabled = false;}, 2000);
+    }
+
+    function nextLevel() {
+      if (currentLevel < 49) {
+        loadLevel(currentLevel+1);
+      } else {
+        document.getElementById("output").textContent = `🎉 You finished all 50 levels!`;
+        achievements.all = true;
+        updateAchievementsDisplay();
+      }
+    }
+
+    // Start at level 1
+    loadLevel(0);
+  </script>
+
+  <div style="margin-top:30px; color:#ccc;">
+    <h3>🕹️ How to Play</h3>
+    <p>Read the logic clue carefully and click an animal tile to select it.</p>
+    <p>💡 Use the Hint button if you're unsure.</p>
+    <p>🧪 Compile checks your guess. 🔁 loads a new riddle.</p>
+  </div>
+
+  <a href="../arcade.html" style="display:block;margin:32px auto 0 auto;color:#0ff;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:220px;border:2px solid #0ff;border-radius:8px;padding:10px 0;box-shadow:0 0 8px #0ff4;">&#8592; Back to Menu</a>
+</body>
+</html>

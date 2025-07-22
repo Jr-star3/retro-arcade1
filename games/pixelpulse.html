@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pixel Pulse</title>
+  <style>
+    body {
+      background: #000;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      text-align: center;
+      padding-top: 30px;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .tile {
+      width: 80px;
+      height: 80px;
+      background: #222;
+      border: 2px solid #444;
+      border-radius: 8px;
+      font-size: 32px;
+      line-height: 80px;
+      transition: background 0.2s;
+    }
+    .active {
+      background: #0f0;
+    }
+    #score {
+      margin-top: 20px;
+      font-size: 24px;
+    }
+  </style>
+
+   <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11321000027"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-11321000027');
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2953185987425903"
+    crossorigin="anonymous"></script>
+
+</head>
+<body>
+  <h1>🎵 Pixel Pulse</h1>
+  <p>Tap the green tiles in rhythm before they fade!</p>
+  <div id="score">Score: 0</div>
+  <div id="grid"></div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const scoreDisplay = document.getElementById('score');
+    let tiles = [];
+    let score = 0;
+
+    function createTiles() {
+      for (let i = 0; i < 16; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.addEventListener('click', () => {
+          if (tile.classList.contains('active')) {
+            score++;
+            scoreDisplay.textContent = "Score: " + score;
+            tile.classList.remove('active');
+          }
+        });
+        grid.appendChild(tile);
+        tiles.push(tile);
+      }
+    }
+
+    function activateRandomTile() {
+      const index = Math.floor(Math.random() * tiles.length);
+      const tile = tiles[index];
+      tile.classList.add('active');
+      setTimeout(() => {
+        tile.classList.remove('active');
+      }, 800);
+    }
+
+    function pulseLoop() {
+      activateRandomTile();
+      setTimeout(pulseLoop, 1000);
+    }
+
+    createTiles();
+    pulseLoop();
+  </script>
+</body>
+
+<a href="../arcade.html" style="display:block;margin:32px auto 0 auto;background:#fff;color:#222;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:240px;border:2px solid #0ff;border-radius:10px;padding:12px 0;box-shadow:0 0 12px #0ff4;font-weight:bold;transition:background 0.2s,color 0.2s;">&#8592; Back to Menu</a>
+</html>

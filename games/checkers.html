@@ -1,0 +1,355 @@
+<html lang="en">
+<head>
+  <style>
+    .game-canvas, .game-container, canvas {
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+    @media (max-width: 600px) {
+      .fullscreen-btn {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: #00ffff;
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+    }
+  </style>
+  <meta charset="UTF-8">
+  <title>Checkers - Retro Arcade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: #232526;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBmZmZmIiBzdHJva2Utd2lkdGg9IjAuNSIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==');
+    }
+    .gamebox {
+      background: rgba(30, 32, 40, 0.98);
+      border: 2px solid #00ffff;
+      border-radius: 18px;
+      box-shadow: 0 0 24px #00ffff44;
+      padding: 32px 24px 24px 24px;
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .checkersboard {
+      display: grid;
+      grid-template-columns: repeat(8, 48px);
+      grid-template-rows: repeat(8, 48px);
+      border: 3px solid #00ffff;
+      border-radius: 8px;
+      box-shadow: 0 0 12px #00ffff88;
+      margin-bottom: 18px;
+      background: #232526;
+    }
+    .square {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      user-select: none;
+    }
+    .light { background: #2e2f3a; }
+    .dark { background: #00ffff22; }
+    .selected { background: #00ffff88 !important; }
+    .move { background: #00ffcc55 !important; }
+    .piece {
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      box-shadow: 0 0 8px #00ffff88;
+    }
+    .red-piece { background: #fff; color: #232526; border: 2px solid #00ffff; }
+    .black-piece { background: #00ffff; color: #232526; border: 2px solid #fff; }
+    .king { font-size: 2rem; }
+    .status {
+      margin: 12px 0 0 0;
+      font-size: 1rem;
+      color: #00ffff;
+      text-shadow: 0 0 4px #000;
+      letter-spacing: 1px;
+    }
+    .reset-btn {
+      margin-top: 18px;
+      padding: 8px 18px;
+      background: #00ffff;
+      color: #232526;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 8px #00ffff88;
+      transition: background 0.2s, color 0.2s;
+    }
+    .reset-btn:hover {
+      background: #00bfbf;
+      color: #fff;
+    }
+    @media (max-width: 600px) {
+      .checkersboard { grid-template-columns: repeat(8, 32px); grid-template-rows: repeat(8, 32px);}
+      .square { width: 32px; height: 32px; font-size: 1.2rem;}
+      .gamebox { padding: 12px 4px 12px 4px;}
+      .piece { width: 22px; height: 22px; font-size: 1rem;}
+    }
+  </style>
+
+   <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11321000027"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-11321000027');
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2953185987425903"
+    crossorigin="anonymous"></script>
+
+</head>
+<body>
+  <button class="fullscreen-btn" id="fullscreenBtn" style="display:none;">Fullscreen</button>
+  <script>
+    // Prevent touch scrolling and enable fullscreen on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+      const gameCanvas = document.querySelector('canvas');
+      if (gameCanvas) {
+        gameCanvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+      }
+      // Show fullscreen button on mobile
+      if (window.innerWidth < 700) {
+        const btn = document.getElementById('fullscreenBtn');
+        if (btn && gameCanvas) {
+          btn.style.display = 'block';
+          btn.addEventListener('click', function() {
+            if (gameCanvas.requestFullscreen) {
+              gameCanvas.requestFullscreen();
+            } else if (gameCanvas.webkitRequestFullscreen) {
+              gameCanvas.webkitRequestFullscreen();
+            } else if (gameCanvas.msRequestFullscreen) {
+              gameCanvas.msRequestFullscreen();
+            }
+          });
+        }
+      }
+    });
+  </script>
+  <div class="gamebox">
+    <h1 style="color:#00ffff; margin-bottom:12px;">⛀ Checkers</h1>
+    <p style="color:#00ffff;margin-bottom:8px;">You are <b>White</b> (bottom). AI is <b>Cyan</b> (top).</p>
+    <div id="checkersboard" class="checkersboard"></div>
+    <div class="status" id="status"></div>
+    <button class="reset-btn" onclick="resetGame()">Reset Game</button>
+  </div>
+  <script>
+    // Board: null, "w", "b", "W", "B" (white, black, white king, black king)
+    let board, selected, legalMoves, turn, statusDiv;
+
+    function getInitialBoard() {
+      let b = [];
+      for (let r = 0; r < 8; r++) {
+        b[r] = [];
+        for (let c = 0; c < 8; c++) {
+          if ((r + c) % 2 === 1) {
+            if (r < 3) b[r][c] = "b";
+            else if (r > 4) b[r][c] = "w";
+            else b[r][c] = null;
+          } else {
+            b[r][c] = null;
+          }
+        }
+      }
+      return b;
+    }
+
+    function renderBoard() {
+      const checkersboard = document.getElementById('checkersboard');
+      checkersboard.innerHTML = '';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const sq = document.createElement('div');
+          sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+          sq.dataset.row = r;
+          sq.dataset.col = c;
+          if (selected && selected[0] === r && selected[1] === c) sq.classList.add('selected');
+          if (legalMoves && legalMoves.some(m => m[0] === r && m[1] === c)) sq.classList.add('move');
+          const piece = board[r][c];
+          if (piece) {
+            const span = document.createElement('span');
+            span.className = 'piece ' + (piece.toLowerCase() === 'w' ? 'red-piece' : 'black-piece') + (piece === 'W' || piece === 'B' ? ' king' : '');
+            span.textContent = (piece === 'W' || piece === 'B') ? '⛁' : '⛀';
+            sq.appendChild(span);
+          }
+          sq.onclick = () => handleSquareClick(r, c);
+          checkersboard.appendChild(sq);
+        }
+      }
+    }
+
+    function handleSquareClick(r, c) {
+      if (turn !== 'w') return; // Player is always white
+      const piece = board[r][c];
+      if (selected) {
+        // If clicked a legal move, move there
+        if (legalMoves.some(m => m[0] === r && m[1] === c)) {
+          movePiece(selected, [r, c]);
+          selected = null;
+          legalMoves = [];
+          renderBoard();
+          setTimeout(aiMove, 400);
+          return;
+        }
+        // If clicked own piece, select it
+        if (piece && (piece === 'w' || piece === 'W')) {
+          selected = [r, c];
+          legalMoves = getLegalMoves(r, c, 'w');
+          renderBoard();
+          return;
+        }
+        // Else, deselect
+        selected = null;
+        legalMoves = [];
+        renderBoard();
+      } else if (piece && (piece === 'w' || piece === 'W')) {
+        selected = [r, c];
+        legalMoves = getLegalMoves(r, c, 'w');
+        renderBoard();
+      }
+    }
+
+    function movePiece([r1, c1], [r2, c2]) {
+      let piece = board[r1][c1];
+      board[r2][c2] = piece;
+      board[r1][c1] = null;
+      // King me
+      if (piece === 'w' && r2 === 0) board[r2][c2] = 'W';
+      if (piece === 'b' && r2 === 7) board[r2][c2] = 'B';
+      // Capture
+      if (Math.abs(r2 - r1) === 2) {
+        board[(r1 + r2) / 2][(c1 + c2) / 2] = null;
+        // Multi-jump
+        selected = [r2, c2];
+        let moreJumps = getLegalMoves(r2, c2, piece.toLowerCase());
+        moreJumps = moreJumps.filter(m => Math.abs(m[0] - r2) === 2);
+        if (moreJumps.length > 0) {
+          legalMoves = moreJumps;
+          renderBoard();
+          // If it's the AI's turn, let the AI continue jumping
+          if (turn === 'b') {
+            setTimeout(aiMove, 400);
+          }
+          return;
+        }
+      }
+      turn = turn === 'w' ? 'b' : 'w';
+      updateStatus();
+    }
+
+    // Simple AI: random legal move
+    function aiMove() {
+      if (turn !== 'b') return;
+      let moves = [];
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+        const piece = board[r][c];
+        if (piece && (piece === 'b' || piece === 'B')) {
+          const lm = getLegalMoves(r, c, 'b');
+          for (const m of lm) moves.push([[r, c], m]);
+        }
+      }
+      if (moves.length === 0) {
+        statusDiv.textContent = "You win! (AI has no moves)";
+        return;
+      }
+      // Prefer jumps
+      let jumps = moves.filter(([from, to]) => Math.abs(from[0] - to[0]) === 2);
+      let move = (jumps.length ? jumps : moves)[Math.floor(Math.random() * (jumps.length ? jumps.length : moves.length))];
+      movePiece(move[0], move[1]);
+      selected = null;
+      legalMoves = [];
+      renderBoard();
+      updateStatus();
+    }
+
+    // Get legal moves for a piece at (r, c)
+    function getLegalMoves(r, c, color) {
+      const piece = board[r][c];
+      if (!piece || piece.toLowerCase() !== color) return [];
+      const isKing = piece === 'W' || piece === 'B';
+      const dirs = [];
+      if (color === 'w' || isKing) dirs.push([-1, -1], [-1, 1]);
+      if (color === 'b' || isKing) dirs.push([1, -1], [1, 1]);
+      let moves = [];
+      // Normal moves
+      for (const [dr, dc] of dirs) {
+        let rr = r + dr, cc = c + dc;
+        if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && !board[rr][cc]) {
+          moves.push([rr, cc]);
+        }
+      }
+      // Jumps
+      for (const [dr, dc] of dirs) {
+        let rr = r + dr, cc = c + dc, rr2 = r + 2 * dr, cc2 = c + 2 * dc;
+        if (
+          rr2 >= 0 && rr2 < 8 && cc2 >= 0 && cc2 < 8 &&
+          board[rr][cc] && board[rr][cc].toLowerCase() !== color &&
+          !board[rr2][cc2]
+        ) {
+          moves.push([rr2, cc2]);
+        }
+      }
+      return moves;
+    }
+
+    function updateStatus() {
+      statusDiv.textContent = turn === 'w' ? "Your move (White)" : "AI's move (Cyan)";
+    }
+
+    function resetGame() {
+      board = getInitialBoard();
+      selected = null;
+      legalMoves = [];
+      turn = 'w';
+      renderBoard();
+      updateStatus();
+    }
+
+    // Init
+    window.onload = () => {
+      statusDiv = document.getElementById('status');
+      resetGame();
+    };
+  </script>
+
+    <a href="../arcade.html" style="display:block;margin:32px auto 0 auto;color:#0ff;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:220px;border:2px solid #0ff;border-radius:8px;padding:10px 0;box-shadow:0 0 8px #0ff4;">&#8592; Back to Menu</a>

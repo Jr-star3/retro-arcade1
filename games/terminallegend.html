@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- External CSS placeholder (for future extraction) -->
+  <link rel="stylesheet" href="terminallegend.css" disabled>
+  <style>
+    .game-canvas, .game-container, canvas {
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+    @media (max-width: 600px) {
+      .fullscreen-btn {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: #00ffff;
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+    }
+    /* Help modal styles */
+    .help-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-content {
+      background: #111;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 12px;
+      padding: 24px 32px;
+      max-width: 400px;
+      margin: 40px auto;
+      font-size: 16px;
+      box-shadow: 0 0 24px #0f08;
+      text-align: left;
+      font-family: monospace;
+    }
+    .help-close {
+      background: #0f0;
+      color: #111;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      float: right;
+      margin-left: 10px;
+      font-family: monospace;
+    }
+    .help-btn {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      background: #0f0;
+      color: #111;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 20;
+      box-shadow: 0 0 8px #0f08;
+      font-family: monospace;
+    }
+  </style>
+  <meta charset="UTF-8" />
+  <title>Terminal Legend</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      background: #000;
+      font-family: monospace;
+      color: #0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .game-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 340px;
+      max-width: 520px;
+      background: #111;
+      border-radius: 12px;
+      box-shadow: 0 0 24px #0f08;
+      padding: 32px 24px 18px 24px;
+      margin: 200px auto 0 auto;
+    }
+    #story {
+      white-space: pre-wrap;
+      margin-bottom: 20px;
+    }
+    .choice {
+      display: block;
+      margin: 5px 0;
+      padding: 6px 12px;
+      background: #111;
+      color: #0f0;
+      border: 1px solid #0f0;
+      cursor: pointer;
+      text-align: left;
+      border-radius: 4px;
+    }
+  </style>
+
+   <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11321000027"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-11321000027');
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2953185987425903"
+    crossorigin="anonymous"></script>
+
+</head>
+<body>
+  <button class="fullscreen-btn" id="fullscreenBtn" style="display:none;">Fullscreen</button>
+  <button class="help-btn" id="helpBtn" aria-label="Show help" title="Show help">?</button>
+  <div class="help-modal" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-content">
+      <button class="help-close" id="closeHelp" aria-label="Close help">Close</button>
+      <h2 id="helpTitle" style="margin-top:0;">Help &amp; Hints</h2>
+      <ul style="padding-left:18px;">
+        <li>Use <b>Tab</b> to move between choices, <b>Enter</b> or <b>Space</b> to select.</li>
+        <li>Each choice leads to a different story path or ending.</li>
+        <li>Some endings are hidden—explore and experiment!</li>
+        <li>Screen readers: Choices are announced as buttons.</li>
+        <li>Click "Back to Menu" at any time to exit.</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    // Prevent touch scrolling and enable fullscreen on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+      const gameCanvas = document.querySelector('canvas');
+      if (gameCanvas) {
+        gameCanvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+      }
+      // Show fullscreen button on mobile
+      if (window.innerWidth < 700) {
+        const btn = document.getElementById('fullscreenBtn');
+        if (btn && gameCanvas) {
+          btn.style.display = 'block';
+          btn.addEventListener('click', function() {
+            if (gameCanvas.requestFullscreen) {
+              gameCanvas.requestFullscreen();
+            } else if (gameCanvas.webkitRequestFullscreen) {
+              gameCanvas.webkitRequestFullscreen();
+            } else if (gameCanvas.msRequestFullscreen) {
+              gameCanvas.msRequestFullscreen();
+            }
+          });
+        }
+      }
+    });
+  </script>
+  <div class="game-center">
+    <h1 id="gameTitle">🧾 Terminal Legend</h1>
+    <div id="story" role="region" aria-live="polite" aria-label="Story"></div>
+    <div id="choices" role="group" aria-label="Choices"></div>
+  </div>
+
+  <script>
+
+// --- NEW STORY SYSTEM: Stateful, branching, with inventory and stats ---
+const storyEl = document.getElementById("story");
+const choicesEl = document.getElementById("choices");
+
+let state = {
+  segment: "awakening",
+  inventory: [],
+  allies: [],
+  courage: 1,
+  wisdom: 1,
+  endings: [],
+};
+
+const segments = {
+  awakening: {
+    text: `>>> SYSTEM BOOTING...\n\nYou awaken in a neon-lit void. Your memory is fragmented. A terminal flickers before you.\n\nA voice echoes:\n"Welcome, lost one. This is the Digital Underworld. Your purpose is forgotten, but your journey begins now."\n\nWhat will you do?`,
+    choices: [
+      { label: "Approach the terminal", next: "terminal_intro" },
+      { label: "Search your surroundings", next: "search_void" },
+      { label: "Call out for help", next: "call_for_help" }
+    ]
+  },
+  terminal_intro: {
+    text: `You approach the terminal. Its screen glows with cryptic code.\n\nA prompt appears:\n> ENTER COMMAND:`,
+    choices: [
+      { label: "Type 'HELP'", next: "terminal_help" },
+      { label: "Type 'REMEMBER'", next: "terminal_remember" },
+      { label: "Type 'EXIT'", next: "void_exit" }
+    ]
+  },
+  terminal_help: {
+    text: `The terminal responds:\n"To escape, you must recover your lost fragments: Courage, Wisdom, and Connection."\n\nA new prompt appears.`,
+    choices: [
+      { label: "Type 'REMEMBER'", next: "terminal_remember" },
+      { label: "Step away from the terminal", next: "search_void" }
+    ]
+  },
+  terminal_remember: {
+    text: `You focus, trying to remember...\n\nA surge of data floods your mind. You recall a friend: LEX, a digital fox.\n\nSuddenly, LEX materializes beside you, tail flickering with code.`,
+    choices: [
+      { label: "Greet LEX", next: "meet_lex" },
+      { label: "Ignore LEX and explore", next: "search_void" }
+    ],
+    effect: () => {
+      if (!state.allies.includes("LEX")) state.allies.push("LEX");
+    }
+  },
+  meet_lex: {
+    text: `LEX grins: "Glad you remembered me! We'll need each other to survive here."\n\nHe offers you a glowing CHIP.`,
+    choices: [
+      { label: "Take the CHIP", next: "take_chip" },
+      { label: "Refuse the CHIP", next: "refuse_chip" }
+    ]
+  },
+  take_chip: {
+    text: `You take the CHIP. It hums with energy. LEX nods approvingly.\n\n[Inventory updated: CHIP]`,
+    choices: [
+      { label: "Ask LEX for advice", next: "lex_advice" },
+      { label: "Explore deeper", next: "deep_corridor" }
+    ],
+    effect: () => {
+      if (!state.inventory.includes("CHIP")) state.inventory.push("CHIP");
+      state.courage += 1;
+    }
+  },
+  refuse_chip: {
+    text: `LEX shrugs: "Suit yourself. But you'll need all the help you can get."\n\nHe vanishes into the shadows.`,
+    choices: [
+      { label: "Explore alone", next: "deep_corridor" }
+    ]
+  },
+  lex_advice: {
+    text: `LEX says: "Trust your instincts. Not everything here is what it seems. And beware the GLITCH."`,
+    choices: [
+      { label: "Thank LEX and move on", next: "deep_corridor" }
+    ]
+  },
+  search_void: {
+    text: `You wander the void. Strange symbols float by. You find a shimmering DOOR and a swirling GLITCH.`,
+    choices: [
+      { label: "Enter the DOOR", next: "door_room" },
+      { label: "Touch the GLITCH", next: "glitch_world" },
+      { label: "Return to the terminal", next: "terminal_intro" }
+    ]
+  },
+  call_for_help: {
+    text: `Your voice echoes. For a moment, nothing. Then, a shadowy figure appears: the ARCHIVIST.\n\n"Few call out in the void," they say.`,
+    choices: [
+      { label: "Ask for guidance", next: "archivist_guidance" },
+      { label: "Challenge the ARCHIVIST", next: "archivist_challenge" }
+    ]
+  },
+  archivist_guidance: {
+    text: `The ARCHIVIST whispers: "Seek the three fragments. Only then can you ascend."\n\nThey hand you a glowing KEY.`,
+    choices: [
+      { label: "Thank them and move on", next: "search_void" }
+    ],
+    effect: () => {
+      if (!state.inventory.includes("KEY")) state.inventory.push("KEY");
+      state.wisdom += 1;
+    }
+  },
+  archivist_challenge: {
+    text: `You challenge the ARCHIVIST. They test your resolve with a riddle:\n\n"What walks on four legs in the morning, two at noon, and three at night?"`,
+    choices: [
+      { label: "Answer: Human", next: "riddle_correct" },
+      { label: "Answer: Dog", next: "riddle_wrong" }
+    ]
+  },
+  riddle_correct: {
+    text: `The ARCHIVIST smiles: "Correct. You have wisdom."\n\n[Wisdom +1]`,
+    choices: [
+      { label: "Continue", next: "search_void" }
+    ],
+    effect: () => { state.wisdom += 1; }
+  },
+  riddle_wrong: {
+    text: `The ARCHIVIST frowns: "Incorrect. Beware the GLITCH."`,
+    choices: [
+      { label: "Continue", next: "glitch_world" }
+    ]
+  },
+  door_room: {
+    text: `You enter a room filled with floating code blocks. A locked GATE bars your way.`,
+    choices: [
+      { label: "Use the KEY", next: "gate_open" },
+      { label: "Try to hack the GATE", next: "hack_gate" },
+      { label: "Go back", next: "search_void" }
+    ]
+  },
+  gate_open: {
+    text: `You use the KEY. The GATE opens, revealing a staircase of light.`,
+    choices: [
+      { label: "Ascend the staircase", next: "ascend_staircase" }
+    ],
+    effect: () => {
+      state.inventory = state.inventory.filter(item => item !== "KEY");
+    }
+  },
+  hack_gate: {
+    text: `You attempt to hack the GATE. It's risky...`,
+    choices: [
+      { label: "Proceed with hack", next: "hack_success" },
+      { label: "Abort", next: "door_room" }
+    ]
+  },
+  hack_success: {
+    text: `You succeed! The GATE opens, but an alarm blares. The GLITCH is coming...`,
+    choices: [
+      { label: "Ascend quickly", next: "ascend_staircase" },
+      { label: "Hide", next: "glitch_world" }
+    ],
+    effect: () => { state.courage += 1; }
+  },
+  ascend_staircase: {
+    text: `You ascend the staircase. At the top, a portal pulses with energy. LEX (if present) joins you.`,
+    choices: [
+      { label: "Enter the portal", next: "finale" }
+    ]
+  },
+  glitch_world: {
+    text: `You are pulled into the GLITCH. Reality distorts. You must fight to escape.`,
+    choices: [
+      { label: "Use the CHIP (if you have it)", next: "chip_escape", condition: () => state.inventory.includes("CHIP") },
+      { label: "Call for LEX", next: "lex_rescue", condition: () => state.allies.includes("LEX") },
+      { label: "Endure the chaos", next: "glitch_endure" }
+    ]
+  },
+  chip_escape: {
+    text: `You use the CHIP. It stabilizes the GLITCH, and you escape back to the void.`,
+    choices: [
+      { label: "Continue", next: "search_void" }
+    ],
+    effect: () => {
+      state.inventory = state.inventory.filter(item => item !== "CHIP");
+    }
+  },
+  lex_rescue: {
+    text: `LEX leaps in, pulling you free from the GLITCH. "Careful!" he warns.`,
+    choices: [
+      { label: "Thank LEX", next: "search_void" }
+    ]
+  },
+  glitch_endure: {
+    text: `You endure the chaos, but lose some of your courage.\n\n[Courage -1]`,
+    choices: [
+      { label: "Continue", next: "search_void" }
+    ],
+    effect: () => { state.courage = Math.max(0, state.courage - 1); }
+  },
+  finale: {
+    text: () => {
+      let ending = "You step through the portal and ascend from the Digital Underworld.";
+      if (state.courage >= 2 && state.wisdom >= 2 && state.allies.includes("LEX")) {
+        ending += "\n\nLEX smiles: 'You did it!'\n\n>>> TRUE ENDING: You are restored, with all fragments united.";
+      } else if (state.courage >= 2 && state.wisdom >= 2) {
+        ending += "\n\n>>> GOOD ENDING: You are restored, but something is missing...";
+      } else {
+        ending += "\n\n>>> FRAGMENTED ENDING: You escape, but your memory is incomplete.";
+      }
+      return ending;
+    },
+    choices: [
+      { label: "Restart Adventure", next: "awakening", effect: () => {
+        state.inventory = [];
+        state.allies = [];
+        state.courage = 1;
+        state.wisdom = 1;
+      }}
+    ]
+  }
+};
+
+// Utility to render choices with conditions
+function renderSegment() {
+  const s = segments[state.segment];
+  // Handle dynamic text
+  storyEl.textContent = typeof s.text === "function" ? s.text() : s.text;
+  choicesEl.innerHTML = "";
+  let firstBtn = null;
+  (s.choices || []).forEach((choice, idx) => {
+    // If there's a condition, check it
+    if (choice.condition && !choice.condition()) return;
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.textContent = choice.label;
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('tabindex', 0);
+    btn.setAttribute('aria-label', choice.label);
+    btn.onclick = () => {
+      if (choice.effect) choice.effect();
+      if (s.effect) s.effect();
+      state.segment = choice.next;
+      renderSegment();
+    };
+    btn.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        btn.click();
+      } else if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+        e.preventDefault();
+        if (btn.nextSibling) btn.nextSibling.focus();
+        else if (choicesEl.firstChild) choicesEl.firstChild.focus();
+      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+        e.preventDefault();
+        if (btn.previousSibling) btn.previousSibling.focus();
+        else if (choicesEl.lastChild) choicesEl.lastChild.focus();
+      }
+    };
+    choicesEl.appendChild(btn);
+    if (idx === 0) firstBtn = btn;
+  });
+  // Focus first choice for accessibility
+  if (firstBtn) setTimeout(() => firstBtn.focus(), 0);
+}
+
+renderSegment();
+
+    // Help modal logic
+    const helpBtn = document.getElementById('helpBtn');
+    const helpModal = document.getElementById('helpModal');
+    const closeHelp = document.getElementById('closeHelp');
+    helpBtn.onclick = () => {
+      helpModal.style.display = 'flex';
+      closeHelp.focus();
+    };
+    closeHelp.onclick = () => {
+      helpModal.style.display = 'none';
+      helpBtn.focus();
+    };
+    // Close modal with Escape key
+    helpModal.onkeydown = (e) => {
+      if (e.key === 'Escape') {
+        helpModal.style.display = 'none';
+        helpBtn.focus();
+      }
+    };
+    // Trap focus inside modal
+    helpModal.addEventListener('keydown', function(e) {
+      if (helpModal.style.display !== 'flex') return;
+      const focusable = helpModal.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.key === 'Tab') {
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    });
+  </script>
+
+  <div style="margin-top:30px; color:#0f0; font-family: monospace; font-size: 16px; text-align: center;">
+    <h3 style="color:#0f0; font-family: monospace;">🕹️ How to Play</h3>
+    <p>Read each story segment and choose actions by clicking options below the text.</p>
+    <p>Choices will lead you through the lost code tomb — some will succeed, others glitch.</p>
+    <p>There are multiple endings. Can you uncover the arcade and restore your legacy?</p>
+  </div>
+
+  <a href="../arcade.html" style="display:block;margin:32px auto 0 auto;color:#0f0;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:220px;border:2px solid #0f0;border-radius:8px;padding:10px 0;box-shadow:0 0 8px #0f04;">&#8592; Back to Menu</a>
+</body>
+</html>
+

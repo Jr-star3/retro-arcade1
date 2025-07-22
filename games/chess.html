@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    .game-canvas, .game-container, canvas {
+      touch-action: none;
+      -ms-touch-action: none;
+    }
+    @media (max-width: 600px) {
+      .fullscreen-btn {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: #00ffff;
+        color: #222;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+    }
+  </style>
+  <meta charset="UTF-8">
+  <title>Chess - Retro Arcade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: #232526;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBmZmZmIiBzdHJva2Utd2lkdGg9IjAuNSIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==');
+    }
+    .gamebox {
+      background: rgba(30, 32, 40, 0.98);
+      border: 2px solid #00ffff;
+      border-radius: 18px;
+      box-shadow: 0 0 24px #00ffff44;
+      padding: 32px 24px 24px 24px;
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .chessboard {
+      display: grid;
+      grid-template-columns: repeat(8, 48px);
+      grid-template-rows: repeat(8, 48px);
+      border: 3px solid #00ffff;
+      border-radius: 8px;
+      box-shadow: 0 0 12px #00ffff88;
+      margin-bottom: 18px;
+      background: #232526;
+    }
+    .square {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      user-select: none;
+    }
+    .light { background: #2e2f3a; }
+    .dark { background: #00ffff22; }
+    .selected { background: #00ffff88 !important; }
+    .move { background: #00ffcc55 !important; }
+    .status {
+      margin: 12px 0 0 0;
+      font-size: 1rem;
+      color: #00ffff;
+      text-shadow: 0 0 4px #000;
+      letter-spacing: 1px;
+    }
+    .reset-btn {
+      margin-top: 18px;
+      padding: 8px 18px;
+      background: #00ffff;
+      color: #232526;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 8px #00ffff88;
+      transition: background 0.2s, color 0.2s;
+    }
+    .reset-btn:hover {
+      background: #00bfbf;
+      color: #fff;
+    }
+    .black-piece { color: #00ffff; text-shadow: 0 0 4px #000; }
+    .white-piece { color: #fff; text-shadow: 0 0 4px #00ffff; }
+    @media (max-width: 600px) {
+      .chessboard { grid-template-columns: repeat(8, 32px); grid-template-rows: repeat(8, 32px);}
+      .square { width: 32px; height: 32px; font-size: 1.2rem;}
+      .gamebox { padding: 12px 4px 12px 4px;}
+    }
+  </style>
+
+   <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11321000027"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-11321000027');
+  </script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2953185987425903"
+    crossorigin="anonymous"></script>
+
+</head>
+<body>
+  <button class="fullscreen-btn" id="fullscreenBtn" style="display:none;">Fullscreen</button>
+  <script>
+    // Prevent touch scrolling and enable fullscreen on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+      const gameCanvas = document.querySelector('canvas');
+      if (gameCanvas) {
+        gameCanvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+        gameCanvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+      }
+      // Show fullscreen button on mobile
+      if (window.innerWidth < 700) {
+        const btn = document.getElementById('fullscreenBtn');
+        if (btn && gameCanvas) {
+          btn.style.display = 'block';
+          btn.addEventListener('click', function() {
+            if (gameCanvas.requestFullscreen) {
+              gameCanvas.requestFullscreen();
+            } else if (gameCanvas.webkitRequestFullscreen) {
+              gameCanvas.webkitRequestFullscreen();
+            } else if (gameCanvas.msRequestFullscreen) {
+              gameCanvas.msRequestFullscreen();
+            }
+          });
+        }
+      }
+    });
+  </script>
+ <div class="gamebox">
+  <h1 style="color:#00ffff; margin-bottom:12px;">♟️ Chess Arena</h1>
+  <div style="margin-bottom:12px;">
+    <label for="levelSelect" style="color:#00ffff; font-size:12px;">Choose Level:</label>
+    <select id="levelSelect" style="font-size:12px; padding:4px 8px; border-radius:6px; margin-left:8px;">
+      <option value="1">1 - Pawn Pusher Pete</option>
+      <option value="2">2 - Rookie Rachel</option>
+      <option value="3">3 - Knight Novice Nick</option>
+      <option value="4">4 - Bishop Brawler Beth</option>
+      <option value="5">5 - Rook Rampage Rex</option>
+      <option value="6">6 - Castle Crusher Carl</option>
+      <option value="7">7 - Queen's Gambit Quinn</option>
+      <option value="8">8 - Tactical Terror Tina</option>
+      <option value="9">9 - Strategic Sage Sam</option>
+      <option value="10">10 - Grandmaster Gabe</option>
+    </select>
+  </div>
+  <div class="level-display" id="levelDisplay">
+    <div style="color:#00ffff; font-size:14px; margin-bottom:8px;">Level 1 / 10</div>
+    <div style="color:#fff; font-size:12px; margin-bottom:12px;">Boss: <span id="bossName">Pawn Pusher Pete</span></div>
+  </div>
+  <p style="color:#00ffff;margin-bottom:8px;">You are <b>White</b> (bottom). Defeat the AI Boss!</p>
+  <div id="chessboard" class="chessboard"></div>
+  <div class="status" id="status"></div>
+  <div class="game-controls">
+    <button class="reset-btn" onclick="resetGame()">Reset Level</button>
+    <button class="reset-btn" onclick="nextLevel()" id="nextBtn" style="display:none; background:#00ff00;">Next Level</button>
+  </div>
+</div>
+  <script>
+    // Unicode chess pieces
+    const PIECES = {
+      wK: "♔", wQ: "♕", wR: "♖", wB: "♗", wN: "♘", wP: "♙",
+      bK: "♚", bQ: "♛", bR: "♜", bB: "♝", bN: "♞", bP: "♟"
+    };
+
+    // Game state
+    let board, selected, legalMoves, turn, statusDiv;
+    let currentLevel = 1;
+    let gameWon = false;
+    
+    // Boss definitions with names and AI difficulty
+    const bosses = [
+      { name: "Pawn Pusher Pete", difficulty: 1, moves: 1 },
+      { name: "Rookie Rachel", difficulty: 2, moves: 1 },
+      { name: "Knight Novice Nick", difficulty: 2, moves: 2 },
+      { name: "Bishop Brawler Beth", difficulty: 3, moves: 2 },
+      { name: "Rook Rampage Rex", difficulty: 3, moves: 3 },
+      { name: "Castle Crusher Carl", difficulty: 4, moves: 3 },
+      { name: "Queen's Gambit Quinn", difficulty: 4, moves: 4 },
+      { name: "Tactical Terror Tina", difficulty: 5, moves: 4 },
+      { name: "Strategic Sage Sam", difficulty: 5, moves: 5 },
+      { name: "Grandmaster Gabe", difficulty: 6, moves: 5 }
+    ];
+
+    // Initial board setup (FEN-like)
+    function getInitialBoard() {
+      return [
+        ["bR","bN","bB","bQ","bK","bB","bN","bR"],
+        ["bP","bP","bP","bP","bP","bP","bP","bP"],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        [null,null,null,null,null,null,null,null],
+        ["wP","wP","wP","wP","wP","wP","wP","wP"],
+        ["wR","wN","wB","wQ","wK","wB","wN","wR"]
+      ];
+    }
+
+    function updateLevelDisplay() {
+      document.getElementById('levelDisplay').innerHTML = `
+        <div style="color:#00ffff; font-size:14px; margin-bottom:8px;">Level ${currentLevel} / 10</div>
+        <div style="color:#fff; font-size:12px; margin-bottom:12px;">Boss: <span id="bossName">${bosses[currentLevel-1].name}</span></div>
+      `;
+    }
+
+    function renderBoard() {
+      const chessboard = document.getElementById('chessboard');
+      chessboard.innerHTML = '';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const sq = document.createElement('div');
+          sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+          sq.dataset.row = r;
+          sq.dataset.col = c;
+          if (selected && selected[0] === r && selected[1] === c) sq.classList.add('selected');
+          if (legalMoves && legalMoves.some(([rr,cc]) => rr === r && cc === c)) sq.classList.add('move');
+          const piece = board[r][c];
+          if (piece) {
+            const span = document.createElement('span');
+            span.textContent = PIECES[piece];
+            span.className = piece[0] === 'w' ? 'white-piece' : 'black-piece';
+            sq.appendChild(span);
+          }
+          sq.onclick = () => handleSquareClick(r, c);
+          chessboard.appendChild(sq);
+        }
+      }
+    }
+
+    function handleSquareClick(r, c) {
+      if (turn !== 'w' || gameWon) return; // Only allow player to move as white
+      const piece = board[r][c];
+      if (selected) {
+        // If clicked a legal move, move there
+        if (legalMoves.some(([rr,cc]) => rr === r && cc === c)) {
+          movePiece(selected, [r, c]);
+          selected = null;
+          legalMoves = [];
+          renderBoard();
+          if (!gameWon) {
+            setTimeout(aiMove, 600);
+          }
+          return;
+        }
+        // If clicked own piece, select it
+        if (piece && piece[0] === 'w') {
+          selected = [r, c];
+          legalMoves = getLegalMoves(r, c, 'w');
+          renderBoard();
+          return;
+        }
+        // Else, deselect
+        selected = null;
+        legalMoves = [];
+        renderBoard();
+      } else if (piece && piece[0] === 'w') {
+        selected = [r, c];
+        legalMoves = getLegalMoves(r, c, 'w');
+        renderBoard();
+      }
+    }
+
+    function movePiece([r1, c1], [r2, c2]) {
+      const capturedPiece = board[r2][c2];
+      board[r2][c2] = board[r1][c1];
+      board[r1][c1] = null;
+      
+      // Check for victory conditions
+      if (capturedPiece === 'bK') {
+        gameWon = true;
+        statusDiv.textContent = `Victory! You defeated ${bosses[currentLevel-1].name}!`;
+        statusDiv.style.color = '#00ff00';
+        if (currentLevel < 10) {
+          document.getElementById('nextBtn').style.display = 'inline-block';
+        } else {
+          statusDiv.textContent = "🎉 CHAMPION! You've defeated all bosses! 🎉";
+        }
+        return;
+      }
+      
+      if (capturedPiece === 'wK') {
+        gameWon = true;
+        statusDiv.textContent = `Defeat! ${bosses[currentLevel-1].name} conquered you!`;
+        statusDiv.style.color = '#ff0000';
+        return;
+      }
+      
+      turn = turn === 'w' ? 'b' : 'w';
+      updateStatus();
+    }
+
+    // Enhanced AI with difficulty levels
+    function aiMove() {
+      if (turn !== 'b' || gameWon) return;
+      
+      const boss = bosses[currentLevel-1];
+      let moves = [];
+      
+      // Collect all possible moves
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = board[r][c];
+          if (piece && piece[0] === 'b') {
+            const lm = getLegalMoves(r, c, 'b');
+            for (const [rr, cc] of lm) {
+              const move = {
+                from: [r, c],
+                to: [rr, cc],
+                piece: piece,
+                capture: board[rr][cc],
+                score: 0
+              };
+              moves.push(move);
+            }
+          }
+        }
+      }
+      
+      if (moves.length === 0) {
+        gameWon = true;
+        statusDiv.textContent = `Victory! ${boss.name} has no moves left!`;
+        statusDiv.style.color = '#00ff00';
+        if (currentLevel < 10) {
+          document.getElementById('nextBtn').style.display = 'inline-block';
+        }
+        return;
+      }
+      
+      // Score moves based on difficulty
+      moves.forEach(move => {
+        // Basic capture scoring
+        if (move.capture) {
+          const pieceValues = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 100 };
+          move.score += pieceValues[move.capture[1]] || 0;
+        }
+        
+        // Difficulty-based enhancements
+        if (boss.difficulty >= 2) {
+          // Attack player pieces
+          const threats = getThreatenedSquares('w');
+          if (threats.some(([r,c]) => r === move.to[0] && c === move.to[1])) {
+            move.score += 2;
+          }
+        }
+        
+        if (boss.difficulty >= 3) {
+          // Protect own pieces
+          const ownThreats = getThreatenedSquares('b');
+          if (ownThreats.some(([r,c]) => r === move.from[0] && c === move.from[1])) {
+            move.score += 1;
+          }
+        }
+        
+        if (boss.difficulty >= 4) {
+          // Center control
+          const centerSquares = [[3,3],[3,4],[4,3],[4,4]];
+          if (centerSquares.some(([r,c]) => r === move.to[0] && c === move.to[1])) {
+            move.score += 1;
+          }
+        }
+        
+        if (boss.difficulty >= 5) {
+          // Development bonus
+          if (move.piece[1] === 'N' || move.piece[1] === 'B') {
+            if (move.from[0] === 0) move.score += 1;
+          }
+        }
+        
+        // Add some randomness to make it less predictable
+        move.score += Math.random() * 0.5;
+      });
+      
+      // Sort by score and pick from top moves
+      moves.sort((a, b) => b.score - a.score);
+      const topMoves = moves.slice(0, Math.min(boss.moves, moves.length));
+      const chosenMove = topMoves[Math.floor(Math.random() * topMoves.length)];
+      
+      movePiece(chosenMove.from, chosenMove.to);
+      selected = null;
+      legalMoves = [];
+      renderBoard();
+      updateStatus();
+    }
+    
+    function getThreatenedSquares(color) {
+      const threats = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = board[r][c];
+          if (piece && piece[0] === color) {
+            const moves = getLegalMoves(r, c, color);
+            threats.push(...moves);
+          }
+        }
+      }
+      return threats;
+    }
+
+    // Basic legal moves (simplified)
+    function getLegalMoves(r, c, color) {
+      const piece = board[r][c];
+      if (!piece || piece[0] !== color) return [];
+      const type = piece[1];
+      const moves = [];
+      const directions = {
+        N: [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]],
+        B: [[-1,-1],[-1,1],[1,-1],[1,1]],
+        R: [[-1,0],[1,0],[0,-1],[0,1]],
+        Q: [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]],
+        K: [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]
+      };
+      
+      if (type === 'P') {
+        const dir = color === 'w' ? -1 : 1;
+        const startRow = color === 'w' ? 6 : 1;
+        
+        // Forward move
+        if (r + dir >= 0 && r + dir < 8 && !board[r + dir][c]) {
+          moves.push([r + dir, c]);
+          // Double move from start
+          if (r === startRow && !board[r + 2*dir][c]) {
+            moves.push([r + 2*dir, c]);
+          }
+        }
+        
+        // Captures
+        for (const dc of [-1, 1]) {
+          const nr = r + dir, nc = c + dc;
+          if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] && board[nr][nc][0] !== color) {
+            moves.push([nr, nc]);
+          }
+        }
+      } else if (type === 'N') {
+        for (const [dr, dc] of directions.N) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc][0] !== color)) {
+            moves.push([nr, nc]);
+          }
+        }
+      } else if (['B', 'R', 'Q'].includes(type)) {
+        const dirs = type === 'B' ? directions.B : type === 'R' ? directions.R : directions.Q;
+        for (const [dr, dc] of dirs) {
+          let nr = r + dr, nc = c + dc;
+          while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+            if (!board[nr][nc]) {
+              moves.push([nr, nc]);
+            } else {
+              if (board[nr][nc][0] !== color) moves.push([nr, nc]);
+              break;
+            }
+            nr += dr; nc += dc;
+          }
+        }
+      } else if (type === 'K') {
+        for (const [dr, dc] of directions.K) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc][0] !== color)) {
+            moves.push([nr, nc]);
+          }
+        }
+      }
+      return moves;
+    }
+
+    function updateStatus() {
+      if (gameWon) return;
+      statusDiv.textContent = turn === 'w' ? "Your move (White)" : `${bosses[currentLevel-1].name} is thinking...`;
+      statusDiv.style.color = '#00ffff';
+    }
+
+function nextLevel() {
+  if (currentLevel < 10) {
+    currentLevel++;
+    // Update the level selector dropdown
+    const levelSelect = document.getElementById('levelSelect');
+    if (levelSelect) levelSelect.value = currentLevel;
+    resetGame();
+    document.getElementById('nextBtn').style.display = 'none';
+  }
+}
+
+    function resetGame() {
+      board = getInitialBoard();
+      selected = null;
+      legalMoves = [];
+      turn = 'w';
+      gameWon = false;
+      updateLevelDisplay();
+      renderBoard();
+      updateStatus();
+      document.getElementById('nextBtn').style.display = 'none';
+    }
+
+    // Init
+    window.onload = () => {
+      statusDiv = document.getElementById('status');
+      // Level selector logic
+      const levelSelect = document.getElementById('levelSelect');
+      levelSelect.value = currentLevel;
+      levelSelect.addEventListener('change', function() {
+        currentLevel = parseInt(this.value);
+        resetGame();
+      });
+      resetGame();
+    };
+  </script>
+</body>
+
+  <a href="../arcade.html" style="display:block;margin:32px auto 0 auto;color:#0ff;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:220px;border:2px solid #0ff;border-radius:8px;padding:10px 0;box-shadow:0 0 8px #0ff4;">&#8592; Back to Menu</a>
+</html>
