@@ -7,16 +7,20 @@ assignees: ""
 ---
 
 **🎮 Which game has the bug?**
-- [ ] Snake
-- [ ] Tetris  
-- [ ] Breakout
-- [ ] Pong
-- [ ] Minesweeper
-- [ ] Memory Game
+- [ ] Chess
+- [ ] Checkers
+- [ ] Checkers 2
+- [ ] Concentration
+- [ ] Pixel Pulse
+- [ ] Prism Relay
+- [ ] Retro Game
+- [ ] Signal Decoder
+- [ ] Terminal Legend
 - [ ] Tic-Tac-Toe
 - [ ] Towers of Hanoi
+- [ ] Towers of Hanoi 2
+- [ ] Wild Logic Lab
 - [ ] Dominoes
-- [ ] Retro Game
 - [ ] Login/Registration system
 - [ ] Other: ___________
 
