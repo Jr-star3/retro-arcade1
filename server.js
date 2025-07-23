@@ -13,7 +13,9 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const helmet = require('helmet');
+
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy (needed for Render and most cloud hosts)
 
 // Debug logging for email credentials
 console.log('DEBUG: EMAIL_USER:', process.env.EMAIL_USER);
