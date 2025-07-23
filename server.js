@@ -5,7 +5,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const sqlite3 = require('sqlite3').verbose();
+// const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
+
+// PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
@@ -13,7 +20,9 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const helmet = require('helmet');
+
 const app = express();
+app.set('trust proxy', 1); // Trust Render's proxy for correct IP handling
 
 // Debug logging for email credentials
 console.log('DEBUG: EMAIL_USER:', process.env.EMAIL_USER);
@@ -60,14 +69,17 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// General rate limiting
+
+// General rate limiting (increased for ad spikes, per-IP)
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { 
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // allow 1000 requests per 15 minutes per IP
+  message: {
     error: 'Too many requests, please try again later',
     type: 'error'
-  }
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use(generalLimiter);
@@ -160,13 +172,19 @@ function requireSubscription(handler) {
         return res.redirect('/subscribe.html');
       }
       req.user = user;
-      // Check subscription in DB
-      db.get('SELECT subscribed FROM users WHERE email = ?', [user.email], (err, row) => {
-        if (err || !row || !row.subscribed) {
+      // Check subscription in DB (PostgreSQL)
+      pool.query('SELECT subscribed FROM users WHERE email = $1', [user.email])
+        .then(result => {
+          const row = result.rows[0];
+          if (!row || !row.subscribed) {
+            return res.redirect('/subscribe.html');
+          }
+          handler(req, res, next);
+        })
+        .catch(err => {
+          console.error('DB error in requireSubscription:', err);
           return res.redirect('/subscribe.html');
-        }
-        handler(req, res, next);
-      });
+        });
     });
   };
 }
@@ -208,63 +226,40 @@ app.get('/games/wildlogiclab.html', requireSubscription((req, res) => {
 // ...existing code...
 // Removed app.use(express.static('.')) to prevent catch-all static serving
 
-const db = new sqlite3.Database('./users.db');
-
-// Initialize DB with enhanced schema - run synchronously to ensure tables exist
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    subscribed INTEGER DEFAULT 0,
-    stripe_customer_id TEXT,
-    email_verified INTEGER DEFAULT 0,
-    verification_token TEXT,
-    verification_expires INTEGER,
-    created_at INTEGER DEFAULT (strftime('%s', 'now')),
-    updated_at INTEGER DEFAULT (strftime('%s', 'now')),
-    last_login INTEGER,
-    failed_login_attempts INTEGER DEFAULT 0,
-    locked_until INTEGER DEFAULT 0
-  )`, (err) => {
-    if (err) console.error('Error creating users table:', err);
-    else console.log('✅ Users table ready');
-  });
-
-  db.run(`CREATE TABLE IF NOT EXISTS password_resets (
-    email TEXT,
-    token TEXT,
-    expires_at INTEGER
-  )`, (err) => {
-    if (err) console.error('Error creating password_resets table:', err);
-    else console.log('✅ Password resets table ready');
-  });
-
-  db.run(`CREATE TABLE IF NOT EXISTS game_progress (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT,
-    game TEXT,
-    score INTEGER,
-    level INTEGER,
-    updated_at INTEGER DEFAULT (strftime('%s', 'now')),
-    UNIQUE(email, game)
-  )`, (err) => {
-    if (err) console.error('Error creating game_progress table:', err);
-    else console.log('✅ Game progress table ready');
-  });
-
-  db.run(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`, (err) => {
-    if (err) console.error('Error creating users index:', err);
-  });
-  
-  db.run(`CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token)`, (err) => {
-    if (err) console.error('Error creating password_resets index:', err);
-  });
-  
-  db.run(`CREATE INDEX IF NOT EXISTS idx_game_progress_email ON game_progress(email)`, (err) => {
-    if (err) console.error('Error creating game_progress index:', err);
-  });
-});
+// Remove SQLite DB initialization. Tables must be created in PostgreSQL manually.
+// Use the following SQL to create tables in your PostgreSQL database:
+//
+// CREATE TABLE IF NOT EXISTS users (
+//   id SERIAL PRIMARY KEY,
+//   email TEXT UNIQUE NOT NULL,
+//   password TEXT NOT NULL,
+//   subscribed INTEGER DEFAULT 0,
+//   stripe_customer_id TEXT,
+//   email_verified INTEGER DEFAULT 0,
+//   verification_token TEXT,
+//   verification_expires BIGINT,
+//   created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()),
+//   updated_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()),
+//   last_login BIGINT,
+//   failed_login_attempts INTEGER DEFAULT 0,
+//   locked_until BIGINT DEFAULT 0
+// );
+//
+// CREATE TABLE IF NOT EXISTS password_resets (
+//   email TEXT,
+//   token TEXT,
+//   expires_at BIGINT
+// );
+//
+// CREATE TABLE IF NOT EXISTS game_progress (
+//   id SERIAL PRIMARY KEY,
+//   email TEXT,
+//   game TEXT,
+//   score INTEGER,
+//   level INTEGER,
+//   updated_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()),
+//   UNIQUE(email, game)
+// );
 
 // Helper function for consistent API responses (matches frontend toast system)
 const sendResponse = (res, status, message, data = null, type = 'info') => {
@@ -313,47 +308,39 @@ app.post('/register', async (req, res) => {
     if (!emailRegex.test(email)) {
       return sendResponse(res, 400, 'Please enter a valid email address', null, 'error');
     }
-    db.get('SELECT id FROM users WHERE email = ?', [email], async (err, user) => {
-      if (err) {
-        console.error('Database error during registration:', err);
-        return sendResponse(res, 500, 'Registration failed. Please try again.', null, 'error');
+    const userResult = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    const user = userResult.rows[0];
+    if (user) {
+      console.log(`❌ User already exists: ${email}`);
+      return sendResponse(res, 400, 'An account with this email already exists', null, 'error');
+    }
+    const hash = await bcrypt.hash(password, 10);
+    // Generate verification token and expiry (1 hour)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = Date.now() + 3600 * 1000;
+    await pool.query(
+      'INSERT INTO users (email, password, email_verified, verification_token, verification_expires) VALUES ($1, $2, 0, $3, $4)',
+      [email, hash, verificationToken, verificationExpires]
+    );
+    // Send verification email
+    const verifyLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email.html?token=${verificationToken}`;
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'motorsportprogression@gmail.com',
+      to: email,
+      subject: 'Verify your email - Retro Arcade',
+      html: `
+        <h2>Welcome to Retro Arcade!</h2>
+        <p>Click the link below to verify your email address:</p>
+        <a href="${verifyLink}" style="background: #00ffff; color: #222; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Verify Email</a>
+        <p>This link will expire in 1 hour.</p>
+      `
+    };
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Email sending error:', error);
+        return sendResponse(res, 500, 'Failed to send verification email. Please try again.', null, 'error');
       }
-      if (user) {
-        console.log(`❌ User already exists: ${email}`);
-        return sendResponse(res, 400, 'An account with this email already exists', null, 'error');
-      }
-      const hash = await bcrypt.hash(password, 10);
-      // Generate verification token and expiry (1 hour)
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      const verificationExpires = Date.now() + 3600 * 1000;
-      db.run(
-        'INSERT INTO users (email, password, email_verified, verification_token, verification_expires) VALUES (?, ?, 0, ?, ?)',
-        [email, hash, verificationToken, verificationExpires], function(err) {
-        if (err) {
-          console.error('Database error during user creation:', err);
-          return sendResponse(res, 500, 'Registration failed. Please try again.', null, 'error');
-        }
-        // Send verification email
-        const verifyLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email.html?token=${verificationToken}`;
-        const mailOptions = {
-          from: process.env.EMAIL_USER || 'motorsportprogression@gmail.com',
-          to: email,
-          subject: 'Verify your email - Retro Arcade',
-          html: `
-            <h2>Welcome to Retro Arcade!</h2>
-            <p>Click the link below to verify your email address:</p>
-            <a href="${verifyLink}" style="background: #00ffff; color: #222; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Verify Email</a>
-            <p>This link will expire in 1 hour.</p>
-          `
-        };
-        transporter.sendMail(mailOptions, (error, info) => {
-          if (error) {
-            console.error('Email sending error:', error);
-            return sendResponse(res, 500, 'Failed to send verification email. Please try again.', null, 'error');
-          }
-          sendResponse(res, 201, 'Account created! Please check your email to verify your account.', { userId: this.lastID }, 'success');
-        });
-      });
+      sendResponse(res, 201, 'Account created! Please check your email to verify your account.', null, 'success');
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -368,25 +355,27 @@ app.get('/verify-email', (req, res) => {
     if (!verificationToken) {
       return sendResponse(res, 400, 'Verification token is required', null, 'error');
     }
-    db.get('SELECT * FROM users WHERE verification_token = ? AND verification_expires > ?', 
-      [verificationToken, Date.now()], (err, user) => {
-      if (err) {
+    (async () => {
+      try {
+        const result = await pool.query(
+          'SELECT * FROM users WHERE verification_token = $1 AND verification_expires > $2',
+          [verificationToken, Date.now()]
+        );
+        const user = result.rows[0];
+        if (!user) {
+          return sendResponse(res, 400, 'Invalid or expired verification token', null, 'error');
+        }
+        await pool.query(
+          'UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires = NULL WHERE id = $1',
+          [user.id]
+        );
+        console.log(`✅ Email verified for user: ${user.email}`);
+        sendResponse(res, 200, 'Email verified successfully! You can now log in.', null, 'success');
+      } catch (err) {
         console.error('Database error during email verification:', err);
         return sendResponse(res, 500, 'Verification failed. Please try again.', null, 'error');
       }
-      if (!user) {
-        return sendResponse(res, 400, 'Invalid or expired verification token', null, 'error');
-      }
-      db.run('UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires = NULL WHERE id = ?', 
-        [user.id], (err) => {
-        if (err) {
-          console.error('Error updating user verification:', err);
-          return sendResponse(res, 500, 'Verification failed. Please try again.', null, 'error');
-        }
-        console.log(`✅ Email verified for user: ${user.email}`);
-        sendResponse(res, 200, 'Email verified successfully! You can now log in.', null, 'success');
-      });
-    });
+    })();
   } catch (error) {
     console.error('Email verification error:', error);
     sendResponse(res, 500, 'Verification failed. Please try again.', null, 'error');
@@ -403,11 +392,9 @@ app.post('/login', async (req, res) => {
     if (!email || !password) {
       return sendResponse(res, 400, 'Email and password are required', null, 'error');
     }
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-      if (err) {
-        console.error('Database error during login:', err);
-        return sendResponse(res, 500, 'Login failed. Please try again.', null, 'error');
-      }
+    try {
+      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const user = result.rows[0];
       console.log(`🔍 User found in database:`, user ? 'YES' : 'NO');
       if (!user) {
         console.log(`❌ User not found: ${email}`);
@@ -423,15 +410,17 @@ app.post('/login', async (req, res) => {
       if (!validPassword) {
         return sendResponse(res, 401, 'Invalid email or password', null, 'error');
       }
-      db.run('UPDATE users SET last_login = ? WHERE email = ?', 
-        [Math.floor(Date.now() / 1000), email]);
+      await pool.query('UPDATE users SET last_login = $1 WHERE email = $2', [Math.floor(Date.now() / 1000), email]);
       const token = jwt.sign({ email }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
       console.log(`✅ Login successful: ${email}`);
       sendResponse(res, 200, 'Welcome back to Retro Arcade!', {
         token,
         subscribed: !!user.subscribed // <-- REAL subscription status
       }, 'success');
-    });
+    } catch (err) {
+      console.error('Database error during login:', err);
+      return sendResponse(res, 500, 'Login failed. Please try again.', null, 'error');
+    }
   } catch (error) {
     console.error('Login error:', error);
     sendResponse(res, 500, 'Login failed. Please try again.', null, 'error');
@@ -452,18 +441,20 @@ app.post('/api/game-progress', authenticateToken, [
     }
     const { game, score, level = 1 } = req.body;
     const email = req.user.email;
-    db.run(`
-      INSERT OR REPLACE INTO game_progress (email, game, score, level, updated_at) 
-      VALUES (?, ?, ?, ?, ?)
-    `, [email, game, score, level, Math.floor(Date.now() / 1000)], function(err) {
-      if (err) {
+    (async () => {
+      try {
+        await pool.query(
+          `INSERT INTO game_progress (email, game, score, level, updated_at)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (email, game) DO UPDATE SET score = $3, level = $4, updated_at = $5`,
+          [email, game, score, level, Math.floor(Date.now() / 1000)]
+        );
+        sendResponse(res, 200, 'Game progress saved successfully!', { game, score, level }, 'success');
+      } catch (err) {
         console.error('Error saving game progress:', err);
         return sendResponse(res, 500, 'Failed to save game progress', null, 'error');
       }
-      sendResponse(res, 200, 'Game progress saved successfully!', { 
-        game, score, level 
-      }, 'success');
-    });
+    })();
   } catch (error) {
     console.error('Game progress error:', error);
     sendResponse(res, 500, 'Failed to save game progress', null, 'error');
@@ -473,21 +464,22 @@ app.post('/api/game-progress', authenticateToken, [
 app.get('/api/game-progress', authenticateToken, (req, res) => {
   try {
     const email = req.user.email;
-    db.all(
-      'SELECT game, score, level, updated_at FROM game_progress WHERE email = ? ORDER BY updated_at DESC',
-      [email],
-      (err, rows) => {
-        if (err) {
-          console.error('Error loading game progress:', err);
-          return sendResponse(res, 500, 'Failed to load game progress', null, 'error');
-        }
-        const progress = rows.map(row => ({
+    (async () => {
+      try {
+        const result = await pool.query(
+          'SELECT game, score, level, updated_at FROM game_progress WHERE email = $1 ORDER BY updated_at DESC',
+          [email]
+        );
+        const progress = result.rows.map(row => ({
           ...row,
           updated_at: new Date(row.updated_at * 1000).toISOString()
         }));
         sendResponse(res, 200, 'Game progress loaded successfully', { progress }, 'success');
+      } catch (err) {
+        console.error('Error loading game progress:', err);
+        return sendResponse(res, 500, 'Failed to load game progress', null, 'error');
       }
-    );
+    })();
   } catch (error) {
     console.error('Game progress error:', error);
     sendResponse(res, 500, 'Failed to load game progress', null, 'error');
@@ -498,34 +490,37 @@ app.get('/api/game-progress', authenticateToken, (req, res) => {
 app.get('/api/profile', authenticateToken, (req, res) => {
   try {
     const email = req.user.email;
-    db.get(`
-      SELECT 
-        email, 
-        subscribed, 
-        created_at, 
-        last_login,
-        (SELECT COUNT(DISTINCT game) FROM game_progress WHERE email = ?) as games_played,
-        (SELECT MAX(score) FROM game_progress WHERE email = ?) as high_score
-      FROM users 
-      WHERE email = ?
-    `, [email, email, email], (err, user) => {
-      if (err) {
+    (async () => {
+      try {
+        const result = await pool.query(`
+          SELECT 
+            email, 
+            subscribed, 
+            created_at, 
+            last_login,
+            (SELECT COUNT(DISTINCT game) FROM game_progress WHERE email = $1) as games_played,
+            (SELECT MAX(score) FROM game_progress WHERE email = $1) as high_score
+          FROM users 
+          WHERE email = $1
+        `, [email]);
+        const user = result.rows[0];
+        if (!user) {
+          return sendResponse(res, 404, 'User not found', null, 'error');
+        }
+        const profile = {
+          email: user.email,
+          subscribed: !!user.subscribed,
+          memberSince: user.created_at ? new Date(user.created_at * 1000).toLocaleDateString() : null,
+          lastLogin: user.last_login ? new Date(user.last_login * 1000).toISOString() : null,
+          gamesPlayed: user.games_played || 0,
+          highScore: user.high_score || 0
+        };
+        sendResponse(res, 200, 'Profile loaded successfully', profile, 'success');
+      } catch (err) {
         console.error('Error loading user profile:', err);
         return sendResponse(res, 500, 'Failed to load profile', null, 'error');
       }
-      if (!user) {
-        return sendResponse(res, 404, 'User not found', null, 'error');
-      }
-      const profile = {
-        email: user.email,
-        subscribed: !!user.subscribed,
-        memberSince: new Date(user.created_at * 1000).toLocaleDateString(),
-        lastLogin: user.last_login ? new Date(user.last_login * 1000).toISOString() : null,
-        gamesPlayed: user.games_played || 0,
-        highScore: user.high_score || 0
-      };
-      sendResponse(res, 200, 'Profile loaded successfully', profile, 'success');
-    });
+    })();
   } catch (error) {
     console.error('Profile error:', error);
     sendResponse(res, 500, 'Failed to load profile', null, 'error');
@@ -547,7 +542,7 @@ app.post('/create-checkout-session', async (req, res) => {
       customer = customers.data[0];
     } else {
       customer = await stripe.customers.create({ email });
-      db.run('UPDATE users SET stripe_customer_id = ? WHERE email = ?', [customer.id, email]);
+      await pool.query('UPDATE users SET stripe_customer_id = $1 WHERE email = $2', [customer.id, email]);
     }
     const subscriptions = await stripe.subscriptions.list({
       customer: customer.id,
@@ -626,10 +621,12 @@ app.post('/webhook', webhookLimiter, bodyParser.raw({type: 'application/json'}),
     switch (event.type) {
       case 'checkout.session.completed': {
         const email = event.data.object.customer_email;
-        db.run('UPDATE users SET subscribed = 1 WHERE email = ?', [email], err => {
-          if (err) console.error('DB error updating subscribed (checkout.session.completed):', err);
-          else console.log(`✅ Subscription activated for ${email}`);
-        });
+        try {
+          await pool.query('UPDATE users SET subscribed = 1 WHERE email = $1', [email]);
+          console.log(`✅ Subscription activated for ${email}`);
+        } catch (err) {
+          console.error('DB error updating subscribed (checkout.session.completed):', err);
+        }
         break;
       }
       case 'customer.subscription.deleted':
@@ -638,10 +635,12 @@ app.post('/webhook', webhookLimiter, bodyParser.raw({type: 'application/json'}),
         try {
           const customer = await stripe.customers.retrieve(customerId);
           if (customer.email) {
-            db.run('UPDATE users SET subscribed = 0 WHERE email = ?', [customer.email], err => {
-              if (err) console.error('DB error updating unsubscribed (subscription deleted):', err);
-              else console.log(`❌ Subscription canceled for ${customer.email}`);
-            });
+            try {
+              await pool.query('UPDATE users SET subscribed = 0 WHERE email = $1', [customer.email]);
+              console.log(`❌ Subscription canceled for ${customer.email}`);
+            } catch (err) {
+              console.error('DB error updating unsubscribed (subscription deleted):', err);
+            }
           }
         } catch (e) {
           console.error('Error retrieving customer for subscription cancel:', e);
@@ -691,15 +690,21 @@ app.post('/webhook', webhookLimiter, bodyParser.raw({type: 'application/json'}),
 // =============================
 app.get('/api/subscription-status', authenticateToken, (req, res) => {
   const email = req.user.email;
-  db.get('SELECT subscribed FROM users WHERE email = ?', [email], (err, user) => {
-    if (err || !user) {
+  (async () => {
+    try {
+      const result = await pool.query('SELECT subscribed FROM users WHERE email = $1', [email]);
+      const user = result.rows[0];
+      if (!user) {
+        return sendResponse(res, 500, 'Failed to load subscription status', null, 'error');
+      }
+      sendResponse(res, 200, 'Subscription status loaded', {
+        subscribed: !!user.subscribed,
+        freeAccess: false
+      }, 'success');
+    } catch (err) {
       return sendResponse(res, 500, 'Failed to load subscription status', null, 'error');
     }
-    sendResponse(res, 200, 'Subscription status loaded', {
-      subscribed: !!user.subscribed,
-      freeAccess: false
-    }, 'success');
-  });
+  })();
 });
 
 // =============================
@@ -708,11 +713,10 @@ app.get('/api/subscription-status', authenticateToken, (req, res) => {
 app.get('/me', authenticateToken, (req, res) => {
   try {
     const email = req.user.email;
-    db.get('SELECT email, subscribed, last_login FROM users WHERE email = ?', [email], (err, user) => {
-      if (err) {
-        console.error('Error in /me endpoint:', err);
-        return sendResponse(res, 500, 'Failed to load user information', null, 'error');
-      }
+  (async () => {
+    try {
+      const result = await pool.query('SELECT email, subscribed, last_login FROM users WHERE email = $1', [email]);
+      const user = result.rows[0];
       if (!user) {
         return sendResponse(res, 404, 'User not found', null, 'error');
       }
@@ -721,7 +725,11 @@ app.get('/me', authenticateToken, (req, res) => {
         subscribed: !!user.subscribed,
         lastLogin: user.last_login ? new Date(user.last_login * 1000).toISOString() : null
       }, 'success');
-    });
+    } catch (err) {
+      console.error('Error in /me endpoint:', err);
+      return sendResponse(res, 500, 'Failed to load user information', null, 'error');
+    }
+  })();
   } catch (error) {
     console.error('Error in /me endpoint:', error);
     sendResponse(res, 500, 'Failed to load user information', null, 'error');
@@ -738,51 +746,44 @@ app.post('/forgot-password', authLimiter, [
       return sendResponse(res, 400, 'Please enter a valid email address', null, 'error');
     }
     const { email } = req.body;
-    db.get('SELECT * FROM users WHERE email = ?', [email], (err, user) => {
-      if (err) {
+    (async () => {
+      try {
+        const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        const user = result.rows[0];
+        const responseMessage = 'If your email is registered, you will receive a reset link.';
+        if (!user) {
+          return sendResponse(res, 200, responseMessage, null, 'info');
+        }
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = Date.now() + 3600 * 1000;
+        await pool.query('DELETE FROM password_resets WHERE email = $1', [email]);
+        await pool.query('INSERT INTO password_resets (email, token, expires_at) VALUES ($1, $2, $3)', [email, token, expiresAt]);
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/forgot-password.html?token=${token}`;
+        const mailOptions = {
+          from: process.env.EMAIL_USER || 'motorsportprogression@gmail.com',
+          to: email,
+          subject: 'Password Reset - Retro Arcade',
+          html: `
+            <h2>Password Reset Request</h2>
+            <p>You requested a password reset for your Retro Arcade account.</p>
+            <p>Click the link below to reset your password:</p>
+            <a href="${resetLink}" style="background: #00ffff; color: #222; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Reset Password</a>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request this reset, you can safely ignore this email.</p>
+          `
+        };
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error('Email sending error:', error);
+            return sendResponse(res, 500, 'Failed to send reset email. Please try again.', null, 'error');
+          }
+          sendResponse(res, 200, responseMessage, null, 'success');
+        });
+      } catch (err) {
         console.error('Database error in forgot password:', err);
         return sendResponse(res, 500, 'Password reset failed. Please try again.', null, 'error');
       }
-      const responseMessage = 'If your email is registered, you will receive a reset link.';
-      if (!user) {
-        return sendResponse(res, 200, responseMessage, null, 'info');
-      }
-      const token = crypto.randomBytes(32).toString('hex');
-      const expiresAt = Date.now() + 3600 * 1000;
-      db.run('DELETE FROM password_resets WHERE email = ?', [email], (err) => {
-        if (err) {
-          console.error('Error cleaning up old tokens:', err);
-        }
-        db.run('INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)', 
-          [email, token, expiresAt], (err) => {
-          if (err) {
-            console.error('Error storing reset token:', err);
-            return sendResponse(res, 500, 'Password reset failed. Please try again.', null, 'error');
-          }
-          const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/forgot-password.html?token=${token}`;
-          const mailOptions = {
-            from: process.env.EMAIL_USER || 'motorsportprogression@gmail.com',
-            to: email,
-            subject: 'Password Reset - Retro Arcade',
-            html: `
-              <h2>Password Reset Request</h2>
-              <p>You requested a password reset for your Retro Arcade account.</p>
-              <p>Click the link below to reset your password:</p>
-              <a href="${resetLink}" style="background: #00ffff; color: #222; padding: 12px 24px; text-decoration: none; border-radius: 8px;">Reset Password</a>
-              <p>This link will expire in 1 hour.</p>
-              <p>If you didn't request this reset, you can safely ignore this email.</p>
-            `
-          };
-          transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error('Email sending error:', error);
-              return sendResponse(res, 500, 'Failed to send reset email. Please try again.', null, 'error');
-            }
-            sendResponse(res, 200, responseMessage, null, 'success');
-          });
-        });
-      });
-    });
+    })();
   } catch (error) {
     console.error('Forgot password error:', error);
     sendResponse(res, 500, 'Password reset failed. Please try again.', null, 'error');
@@ -801,29 +802,22 @@ app.post('/reset-password', [
       return sendResponse(res, 400, 'Please check your password requirements', errors.array(), 'error');
     }
     const { token, password } = req.body;
-    db.get('SELECT * FROM password_resets WHERE token = ?', [token], async (err, row) => {
-      if (err) {
+    (async () => {
+      try {
+        const result = await pool.query('SELECT * FROM password_resets WHERE token = $1', [token]);
+        const row = result.rows[0];
+        if (!row || row.expires_at < Date.now()) {
+          return sendResponse(res, 400, 'Invalid or expired reset token. Please request a new password reset.', null, 'error');
+        }
+        const hash = await bcrypt.hash(password, 12);
+        await pool.query('UPDATE users SET password = $1, failed_login_attempts = 0, locked_until = 0 WHERE email = $2', [hash, row.email]);
+        await pool.query('DELETE FROM password_resets WHERE token = $1', [token]);
+        sendResponse(res, 200, 'Password reset successful! You can now log in with your new password.', null, 'success');
+      } catch (err) {
         console.error('Database error in reset password:', err);
         return sendResponse(res, 500, 'Password reset failed. Please try again.', null, 'error');
       }
-      if (!row || row.expires_at < Date.now()) {
-        return sendResponse(res, 400, 'Invalid or expired reset token. Please request a new password reset.', null, 'error');
-      }
-      const hash = await bcrypt.hash(password, 12);
-      db.run('UPDATE users SET password = ?, failed_login_attempts = 0, locked_until = 0 WHERE email = ?', 
-        [hash, row.email], (err) => {
-        if (err) {
-          console.error('Error updating password:', err);
-          return sendResponse(res, 500, 'Password reset failed. Please try again.', null, 'error');
-        }
-        db.run('DELETE FROM password_resets WHERE token = ?', [token], (err) => {
-          if (err) {
-            console.error('Error cleaning up reset token:', err);
-          }
-        });
-        sendResponse(res, 200, 'Password reset successful! You can now log in with your new password.', null, 'success');
-      });
-    });
+    })();
   } catch (error) {
     console.error('Reset password error:', error);
     sendResponse(res, 500, 'Password reset failed. Please try again.', null, 'error');
