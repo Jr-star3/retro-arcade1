@@ -52,11 +52,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/retro-arcade-collection.git"
+    "url": "git+https://github.com/Jr-star3/retro-arcade-collection.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/retro-arcade-collection/issues"
+    "url": "https://github.com/Jr-star3/retro-arcade-collection/issues"
   },
-  "homepage": "https://github.com/yourusername/retro-arcade-collection#readme"
+  "homepage": "https://github.com/Jr-star3/retro-arcade-collection#readme"
 }
 
