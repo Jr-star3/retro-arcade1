@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 
 const express = require('express');
@@ -83,6 +84,93 @@ const generalLimiter = rateLimit({
 });
 
 app.use(generalLimiter);
+
+// Stripe webhook with signature verification and rate limiting
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,
+  message: 'Too many webhook requests, please try again later.'
+});
+
+// IMPORTANT: Define /webhook route BEFORE bodyParser.json middleware!
+app.post('/webhook', webhookLimiter, bodyParser.raw({type: 'application/json'}), async (req, res) => {
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], endpointSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const email = event.data.object.customer_email;
+        try {
+          await pool.query('UPDATE users SET subscribed = 1 WHERE email = $1', [email]);
+          console.log(`✅ Subscription activated for ${email}`);
+        } catch (err) {
+          console.error('DB error updating subscribed (checkout.session.completed):', err);
+        }
+        break;
+      }
+      case 'customer.subscription.deleted':
+      case 'customer.subscription.canceled': {
+        const customerId = event.data.object.customer;
+        try {
+          const customer = await stripe.customers.retrieve(customerId);
+          if (customer.email) {
+            try {
+              await pool.query('UPDATE users SET subscribed = 0 WHERE email = $1', [customer.email]);
+              console.log(`❌ Subscription canceled for ${customer.email}`);
+            } catch (err) {
+              console.error('DB error updating unsubscribed (subscription deleted):', err);
+            }
+          }
+        } catch (e) {
+          console.error('Error retrieving customer for subscription cancel:', e);
+        }
+        break;
+      }
+      case 'invoice.payment_failed': {
+        const customerId = event.data.object.customer;
+        try {
+          const customer = await stripe.customers.retrieve(customerId);
+          if (customer.email) {
+            // Optionally, set a grace period or notify user
+            console.warn(`⚠️ Payment failed for ${customer.email}`);
+          }
+        } catch (e) {
+          console.error('Error retrieving customer for payment failed:', e);
+        }
+        break;
+      }
+      case 'customer.subscription.updated': {
+        // You can handle plan changes, renewals, etc. here
+        const customerId = event.data.object.customer;
+        try {
+          const customer = await stripe.customers.retrieve(customerId);
+          if (customer.email) {
+            // Log or update status if needed
+            console.log(`ℹ️ Subscription updated for ${customer.email}`);
+          }
+        } catch (e) {
+          console.error('Error retrieving customer for subscription update:', e);
+        }
+        break;
+      }
+      default:
+        // Log unhandled event types for future reference
+        console.log(`Unhandled Stripe event type: ${event.type}`);
+    }
+    res.json({received: true});
+  } catch (err) {
+    console.error('Error handling Stripe webhook event:', err);
+    res.status(500).send('Webhook handler error');
+  }
+});
+
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(express.static('public'));
 // Serve free games as static files
@@ -600,12 +688,7 @@ app.post('/create-customer-portal-session', async (req, res) => {
   }
 });
 
-// Stripe webhook with signature verification and rate limiting
-const webhookLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20,
-  message: 'Too many webhook requests, please try again later.'
-});
+
 
 app.post('/webhook', webhookLimiter, bodyParser.raw({type: 'application/json'}), async (req, res) => {
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
