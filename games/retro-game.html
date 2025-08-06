@@ -1,29 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <style>
-    .game-canvas, .game-container, canvas {
-      touch-action: none;
-      -ms-touch-action: none;
-    }
-    @media (max-width: 600px) {
-      .fullscreen-btn {
-        display: block;
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10;
-        background: #00ffff;
-        color: #222;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-size: 14px;
-        font-family: inherit;
-        cursor: pointer;
-      }
-    }
-  </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Retro Game</title>
@@ -129,34 +106,34 @@
 <!-- ...existing code... -->
 </head>
 <body>
-  <button class="fullscreen-btn" id="fullscreenBtn" style="display:none;">Fullscreen</button>
-  <script>
-    // Prevent touch scrolling and enable fullscreen on mobile
-    document.addEventListener('DOMContentLoaded', function() {
-      const gameCanvas = document.querySelector('canvas');
-      if (gameCanvas) {
-        gameCanvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-        gameCanvas.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-        gameCanvas.addEventListener('touchend', e => e.preventDefault(), { passive: false });
-      }
-      // Show fullscreen button on mobile
-      if (window.innerWidth < 700) {
-        const btn = document.getElementById('fullscreenBtn');
-        if (btn && gameCanvas) {
-          btn.style.display = 'block';
-          btn.addEventListener('click', function() {
-            if (gameCanvas.requestFullscreen) {
-              gameCanvas.requestFullscreen();
-            } else if (gameCanvas.webkitRequestFullscreen) {
-              gameCanvas.webkitRequestFullscreen();
-            } else if (gameCanvas.msRequestFullscreen) {
-              gameCanvas.msRequestFullscreen();
-            }
-          });
-        }
-      }
-    });
-  </script>
+ <!-- Social Share Buttons -->
+    <div style="display: flex; justify-content: center; gap: 10px; margin: 20px 0 32px 0; flex-wrap: wrap;">
+      <a href="https://www.facebook.com/sharer/sharer.php?u=https://retrogame.tech/games/retro-game.html" target="_blank" rel="noopener" title="Share on Facebook" style="background:#1877f3;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg" alt="Facebook" style="width:22px;height:22px;filter:invert(1);"></a>
+      <a href="https://twitter.com/intent/tweet?url=https://retrogame.tech/games/retro-game.html&text=Play%20Retro%20Game%20on%20RetroGame.tech!" target="_blank" rel="noopener" title="Share on Twitter" style="background:#1da1f2;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/twitter.svg" alt="Twitter" style="width:22px;height:22px;filter:invert(1);"></a>
+      <a href="https://wa.me/?text=Play%20Retro%20Game%20on%20RetroGame.tech!%20https://retrogame.tech/games/retro-game.html" target="_blank" rel="noopener" title="Share on WhatsApp" style="background:#25d366;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/whatsapp.svg" alt="WhatsApp" style="width:22px;height:22px;filter:invert(1);"></a>
+      <a href="https://www.reddit.com/submit?url=https://retrogame.tech/games/retro-game.html&title=Play%20Retro%20Game%20on%20RetroGame.tech!" target="_blank" rel="noopener" title="Share on Reddit" style="background:#ff4500;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/reddit.svg" alt="Reddit" style="width:22px;height:22px;filter:invert(1);"></a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://retrogame.tech/games/retro-game.html" target="_blank" rel="noopener" title="Share on LinkedIn" style="background:#0077b5;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/linkedin.svg" alt="LinkedIn" style="width:22px;height:22px;filter:invert(1);"></a>
+      <a href="https://t.me/share/url?url=https://retrogame.tech/games/retro-game.html&text=Play%20Retro%20Game%20on%20RetroGame.tech!" target="_blank" rel="noopener" title="Share on Telegram" style="background:#229ed9;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/telegram.svg" alt="Telegram" style="width:22px;height:22px;filter:invert(1);"></a>
+      <a href="https://pinterest.com/pin/create/button/?url=https://retrogame.tech/games/retro-game.html&media=&description=Play%20Retro%20Game%20on%20RetroGame.tech!" target="_blank" rel="noopener" title="Share on Pinterest" style="background:#e60023;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/pinterest.svg" alt="Pinterest" style="width:22px;height:22px;filter:invert(1);"></a>
+    </div>
+
+    <!-- Shop Link Box -->
+    <div style="margin: 32px auto 40px auto; max-width: 500px;">
+      <div style="background: linear-gradient(90deg, #00ffff 0%, #ff00ff 100%); border-radius: 14px; box-shadow: 0 0 24px #00ffff55; padding: 2px;">
+        <div style="background: #181818; border-radius: 12px; padding: 24px 18px; text-align: center;">
+          <div style="font-size: 13px; color: #ffff00; font-family: 'Press Start 2P', monospace; margin-bottom: 10px; text-shadow: 0 0 8px #ffff00;">
+            Support Retro Arcade &amp; Level Up Your Setup!
+          </div>
+          <div style="font-size: 10px; color: #cccccc; margin-bottom: 18px;">
+            Visit our <strong>Retro Shop</strong> for cool gaming gear, collectibles, and more. Every purchase helps us keep the arcade running 24/7!
+          </div>
+          <a href="../shop.html" style="display: inline-block; background: linear-gradient(90deg, #00ffff 0%, #ff00ff 100%); color: #181818; font-size: 12px; font-family: 'Press Start 2P', monospace; font-weight: bold; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 0 12px #00ffff88; transition: transform 0.2s;">
+            🛒 Visit Shop
+          </a>
+        </div>
+      </div>
+    </div>
+    
     <div class="container">
         <h1>Retro Game</h1>
         <div class="scoreboard" id="scoreboard">
