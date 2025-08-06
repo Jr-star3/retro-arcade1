@@ -1,66 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <style>
-    .game-canvas, .game-container, canvas {
-      touch-action: none;
-      -ms-touch-action: none;
-    }
-    @media (max-width: 600px) {
-      .fullscreen-btn {
-        display: block;
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 10;
-        background: #00ffff;
-        color: #222;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-size: 14px;
-        font-family: inherit;
-        cursor: pointer;
-      }
-    }
-  </style>
   <meta charset="UTF-8" />
-  <title>Prism Relay</title>
+  <title>Pixel Pulse</title>
   <style>
     body {
       background: #000;
-      color: #0ff;
-      font-family: monospace;
+      font-family: 'Courier New', monospace;
+      color: #fff;
       text-align: center;
-      padding-top: 20px;
+      padding-top: 30px;
     }
     #grid {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-gap: 10px;
       justify-content: center;
-      margin: 20px auto;
+      margin-top: 20px;
     }
     .tile {
-      width: 60px;
-      height: 60px;
-      margin: 4px;
-      border-radius: 6px;
-      border: 2px solid #222;
-      cursor: pointer;
+      width: 80px;
+      height: 80px;
+      background: #222;
+      border: 2px solid #444;
+      border-radius: 8px;
+      font-size: 32px;
+      line-height: 80px;
+      transition: background 0.2s;
     }
-    .red { background: #f00; }
-    .green { background: #0f0; }
-    .blue { background: #00f; }
-    .yellow { background: #ff0; }
-    .purple { background: #a0f; }
-    .active { border-color: #fff; }
-    #target {
-      margin-top: 10px;
-      font-size: 16px;
-      color: #fff;
+    .active {
+      background: #0f0;
     }
     #score {
-      margin-top: 10px;
-      font-size: 18px;
+      margin-top: 20px;
+      font-size: 24px;
     }
   </style>
 
@@ -79,165 +52,79 @@
 
 </head>
 <body>
-
-</script>
-  <h1>🖍️ Prism Relay</h1>
-  <p>Click tiles to cycle their color and match the target pattern before time runs out!</p>
+  <h1>🎵 Pixel Pulse</h1>
+  <p>Tap the green tiles in rhythm before they fade!</p>
   <!-- Social Share Buttons -->
   <div style="display: flex; justify-content: center; gap: 10px; margin: 18px 0 10px 0; flex-wrap: wrap;">
-    <a href="https://www.facebook.com/sharer/sharer.php?u=https://retrolab.fun/games/prismrelay.html" target="_blank" rel="noopener" title="Share on Facebook" style="background:#1877f3;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg" alt="Facebook" style="width:22px;height:22px;filter:invert(1);"></a>
-    <a href="https://twitter.com/intent/tweet?url=https://retrolab.fun/games/prismrelay.html&text=Try%20Prism%20Relay%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Twitter" style="background:#1da1f2;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/twitter.svg" alt="Twitter" style="width:22px;height:22px;filter:invert(1);"></a>
-    <a href="https://wa.me/?text=Try%20Prism%20Relay%20on%20RetroLab!%20https://retrolab.fun/games/prismrelay.html" target="_blank" rel="noopener" title="Share on WhatsApp" style="background:#25d366;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/whatsapp.svg" alt="WhatsApp" style="width:22px;height:22px;filter:invert(1);"></a>
-    <a href="https://www.reddit.com/submit?url=https://retrolab.fun/games/prismrelay.html&title=Try%20Prism%20Relay%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Reddit" style="background:#ff4500;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/reddit.svg" alt="Reddit" style="width:22px;height:22px;filter:invert(1);"></a>
-    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://retrolab.fun/games/prismrelay.html" target="_blank" rel="noopener" title="Share on LinkedIn" style="background:#0077b5;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/linkedin.svg" alt="LinkedIn" style="width:22px;height:22px;filter:invert(1);"></a>
-    <a href="https://t.me/share/url?url=https://retrolab.fun/games/prismrelay.html&text=Try%20Prism%20Relay%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Telegram" style="background:#229ed9;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/telegram.svg" alt="Telegram" style="width:22px;height:22px;filter:invert(1);"></a>
-    <a href="https://pinterest.com/pin/create/button/?url=https://retrolab.fun/games/prismrelay.html&media=&description=Try%20Prism%20Relay%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Pinterest" style="background:#e60023;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/pinterest.svg" alt="Pinterest" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://retrolab.fun/games/pixelpulse.html" target="_blank" rel="noopener" title="Share on Facebook" style="background:#1877f3;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg" alt="Facebook" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://twitter.com/intent/tweet?url=https://retrolab.fun/games/pixelpulse.html&text=Try%20Pixel%20Pulse%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Twitter" style="background:#1da1f2;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/twitter.svg" alt="Twitter" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://wa.me/?text=Try%20Pixel%20Pulse%20on%20RetroLab!%20https://retrolab.fun/games/pixelpulse.html" target="_blank" rel="noopener" title="Share on WhatsApp" style="background:#25d366;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/whatsapp.svg" alt="WhatsApp" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://www.reddit.com/submit?url=https://retrolab.fun/games/pixelpulse.html&title=Try%20Pixel%20Pulse%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Reddit" style="background:#ff4500;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/reddit.svg" alt="Reddit" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://retrolab.fun/games/pixelpulse.html" target="_blank" rel="noopener" title="Share on LinkedIn" style="background:#0077b5;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/linkedin.svg" alt="LinkedIn" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://t.me/share/url?url=https://retrolab.fun/games/pixelpulse.html&text=Try%20Pixel%20Pulse%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Telegram" style="background:#229ed9;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/telegram.svg" alt="Telegram" style="width:22px;height:22px;filter:invert(1);"></a>
+    <a href="https://pinterest.com/pin/create/button/?url=https://retrolab.fun/games/pixelpulse.html&media=&description=Try%20Pixel%20Pulse%20on%20RetroLab!" target="_blank" rel="noopener" title="Share on Pinterest" style="background:#e60023;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;"><img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/pinterest.svg" alt="Pinterest" style="width:22px;height:22px;filter:invert(1);"></a>
   </div>
 
   <!-- Shop Link Box -->
   <div style="margin: 32px auto 40px auto; max-width: 500px;">
     <div style="background: linear-gradient(90deg, #00ffff 0%, #ff00ff 100%); border-radius: 14px; box-shadow: 0 0 24px #00ffff55; padding: 2px;">
       <div style="background: #000; border-radius: 12px; padding: 24px 18px; text-align: center;">
-        <div style="font-size: 13px; color: #ffff00; font-family: monospace; margin-bottom: 10px; text-shadow: 0 0 8px #ffff00;">
+        <div style="font-size: 13px; color: #ffff00; font-family: 'Courier New', monospace; margin-bottom: 10px; text-shadow: 0 0 8px #ffff00;">
           Support Retro Arcade &amp; Level Up Your Setup!
         </div>
         <div style="font-size: 10px; color: #cccccc; margin-bottom: 18px;">
           Visit our <strong>Retro Shop</strong> for cool gaming gear, collectibles, and more. Every purchase helps us keep the arcade running 24/7!
         </div>
-        <a href="../shop.html" style="display: inline-block; background: linear-gradient(90deg, #00ffff 0%, #ff00ff 100%); color: #000; font-size: 12px; font-family: monospace; font-weight: bold; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 0 12px #00ffff88; transition: transform 0.2s;">
+        <a href="../shop.html" style="display: inline-block; background: linear-gradient(90deg, #00ffff 0%, #ff00ff 100%); color: #000; font-size: 12px; font-family: 'Courier New', monospace; font-weight: bold; padding: 12px 32px; border-radius: 8px; text-decoration: none; box-shadow: 0 0 12px #00ffff88; transition: transform 0.2s;">
           🛒 Visit Shop
         </a>
       </div>
     </div>
   </div>
-
-  <div id="grid"></div>
-  <div id="target">Target: red, green, blue, yellow, purple</div>
   <div id="score">Score: 0</div>
-  <div id="timer" style="margin-top:10px;font-size:20px;font-family:inherit;font-weight:bold;">Time: 20.0s</div>
+  <div id="grid"></div>
 
   <script>
-    const grid = document.getElementById("grid");
-    const colors = ["red", "green", "blue", "yellow", "purple"];
+    const grid = document.getElementById('grid');
+    const scoreDisplay = document.getElementById('score');
     let tiles = [];
-    let targetPattern = [];
     let score = 0;
-    let timer = null;
-    let timeLeft = 20.0;
 
     function createTiles() {
-      for (let i = 0; i < 5; i++) {
-        const tile = document.createElement("div");
-        tile.className = `tile ${colors[Math.floor(Math.random() * colors.length)]}`;
-        tile.dataset.colorIndex = 0;
-        tile.addEventListener("click", () => cycleColor(tile));
+      for (let i = 0; i < 16; i++) {
+        const tile = document.createElement('div');
+        tile.classList.add('tile');
+        tile.addEventListener('click', () => {
+          if (tile.classList.contains('active')) {
+            score++;
+            scoreDisplay.textContent = "Score: " + score;
+            tile.classList.remove('active');
+          }
+        });
         grid.appendChild(tile);
         tiles.push(tile);
       }
     }
 
-    function cycleColor(tile) {
-      let index = parseInt(tile.dataset.colorIndex);
-      index = (index + 1) % colors.length;
-      tile.dataset.colorIndex = index;
-      colors.forEach(c => tile.classList.remove(c));
-      tile.classList.add(colors[index]);
-    }
-
-    function randomTarget() {
-      targetPattern = [];
-      for (let i = 0; i < 5; i++) {
-        const c = colors[Math.floor(Math.random() * colors.length)];
-        targetPattern.push(c);
-      }
-      document.getElementById("target").textContent = "Target: " + targetPattern.join(", ");
-    }
-
-    function checkMatch() {
-      const match = tiles.every((tile, i) => tile.classList.contains(targetPattern[i]));
-      if (match) {
-        score += 10;
-        document.getElementById("score").textContent = "Score: " + score;
-        resetRound();
-      } else {
-        endGame();
-      }
-    }
-
-    function updateTimerDisplay() {
-      const timerEl = document.getElementById('timer');
-      timerEl.textContent = `Time: ${timeLeft.toFixed(1)}s`;
-      // Color transitions: green > yellow > orange > red
-      if (timeLeft > 12) {
-        timerEl.style.color = '#0f0';
-      } else if (timeLeft > 7) {
-        timerEl.style.color = '#ff0';
-      } else if (timeLeft > 3) {
-        timerEl.style.color = '#fa0';
-      } else {
-        timerEl.style.color = '#f00';
-        timerEl.style.textShadow = '0 0 8px #f00, 0 0 16px #f00a';
-      }
-      if (timeLeft > 3) timerEl.style.textShadow = '';
-    }
-
-    function startTimer() {
-      timeLeft = 20.0;
-      updateTimerDisplay();
-      if (timer) clearInterval(timer);
-      timer = setInterval(() => {
-        timeLeft -= 0.1;
-        if (timeLeft <= 0) {
-          timeLeft = 0;
-          updateTimerDisplay();
-          clearInterval(timer);
-          // On timer end, check if match, advance if so, else end game
-          const match = tiles.every((tile, i) => tile.classList.contains(targetPattern[i]));
-          if (match) {
-            score += 10;
-            document.getElementById("score").textContent = "Score: " + score;
-            resetRound();
-          } else {
-            endGame();
-          }
-        } else {
-          updateTimerDisplay();
-        }
-      }, 100);
-    }
-
-    function endGame() {
-      if (timer) clearInterval(timer);
-      document.getElementById('timer').textContent = '⛔ Time up!';
-      document.getElementById('timer').style.color = '#f00';
-      document.getElementById('timer').style.textShadow = '0 0 8px #f00, 0 0 16px #f00a';
+    function activateRandomTile() {
+      const index = Math.floor(Math.random() * tiles.length);
+      const tile = tiles[index];
+      tile.classList.add('active');
       setTimeout(() => {
-        alert('⛔ Relay overload!');
-        location.reload();
-      }, 400);
+        tile.classList.remove('active');
+      }, 800);
     }
 
-    function resetRound() {
-      tiles.forEach(tile => {
-        tile.className = "tile " + colors[Math.floor(Math.random() * colors.length)];
-        tile.dataset.colorIndex = 0;
-      });
-      randomTarget();
-      startTimer();
+    function pulseLoop() {
+      activateRandomTile();
+      setTimeout(pulseLoop, 1000);
     }
 
     createTiles();
-    randomTarget();
-    startTimer();
+    pulseLoop();
   </script>
-
-  <div style="margin-top:30px; color:#ccc;">
-    <h3>🕹️ How to Play</h3>
-    <p>You get 20 seconds to flip tile colors and match the target pattern (left to right).</p>
-    <p>Click a tile to cycle through colors. If all 5 match, you score. If not, the relay crashes!</p>
-    <p>Each successful match gives 10 points and loads a new sequence. React fast!</p>
-  </div>
-
-  <a href="../arcade.html" style="display:block;margin:32px auto 0 auto;color:#0ff;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:220px;border:2px solid #0ff;border-radius:8px;padding:10px 0;box-shadow:0 0 8px #0ff4;">&#8592; Back to Menu</a>
 </body>
+
+<a href="../arcade.html" style="display:block;margin:32px auto 0 auto;background:#fff;color:#222;text-align:center;text-decoration:none;font-family:monospace;font-size:18px;max-width:240px;border:2px solid #0ff;border-radius:10px;padding:12px 0;box-shadow:0 0 12px #0ff4;font-weight:bold;transition:background 0.2s,color 0.2s;">&#8592; Back to Menu</a>
 </html>
+
