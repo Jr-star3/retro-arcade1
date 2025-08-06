@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Retro Arcade Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #001133 0%, #000 100%);
+      color: #0ff;
+      font-family: 'Press Start 2P', monospace;
+      text-align: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    h1 {
+      margin-bottom: 18px;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff8;
+      font-size: 28px;
+      letter-spacing: 2px;
+    }
+    .shop-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 20px;
+      padding: 32px 24px 24px 24px;
+      box-shadow: 0 0 30px #0ff4, 0 0 8px #000a;
+      border: 2px solid #0ff;
+      position: relative;
+    }
+    .product {
+      background: #111;
+      border: 2px solid #0ff;
+      border-radius: 12px;
+      padding: 18px 16px;
+      margin-bottom: 24px;
+      color: #fff;
+      box-shadow: 0 0 8px #0ff4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+    .product:hover {
+      box-shadow: 0 0 24px #0ff8;
+    }
+    .product-title {
+      font-size: 18px;
+      color: #0ff;
+      margin-bottom: 10px;
+      text-shadow: 0 0 8px #0ff8;
+    }
+    .product-img {
+      width: 180px;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      box-shadow: 0 0 12px #0ff4;
+      background: #222;
+      border: 1px solid #0ff;
+    }
+    .product-link {
+      display: inline-block;
+      background: #0ff;
+      color: #222;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      border-radius: 8px;
+      padding: 10px 18px;
+      text-decoration: none;
+      box-shadow: 0 0 8px #0ff4;
+      margin-top: 10px;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    .product-link:hover {
+      background: #222;
+      color: #0ff;
+      box-shadow: 0 0 18px #0ff8;
+    }
+    @media (max-width: 600px) {
+      .shop-container { padding: 12px; margin: 8px; }
+      .product-img { width: 120px; }
+      h1 { font-size: 18px; }
+      .product-title { font-size: 14px; }
+      .product-link { font-size: 10px; padding: 7px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🛒 Retro Arcade Shop</h1>
+  <div class="shop-container">
+    <div class="product">
+      <div class="product-title">Playstation 5 Digital (Slim) + £10 Store Gift Card</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/5170JBwqp6L._AC_SL1280_.jpg" alt="Playstation 5 Digital Slim" />
+      <a class="product-link" href="https://amzn.to/3GUkTvf" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Deluxe Mancala Set: Real Wood Hinged Board with 48 Mixed Natural Gemstones - Authentic African Petroglyphs, Foldable Design for 2-Player Strategy Game</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/91fXdDjNYwL._AC_SX569_.jpg" alt="Deluxe Mancala Set Real Wood Hinged Board" />
+      <a class="product-link" href="https://amzn.to/41nfH9X" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Sharp Brain Zone Wooden Brain Teaser | Puzzle for Kids Children & Adults | Challenging Puzzles | Pentominoes Brain Teaser Games | Suitable for Ages 3 and above</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/81h4kw+oTlL._AC_SX569_.jpg" alt="Sharp Brain Zone Wooden Brain Teaser" />
+      <a class="product-link" href="https://amzn.to/471Jc55" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <!-- Add more products below as needed -->
+    <div class="product">
+      <div class="product-title">Play Station Sony Dualsense Wireless Controller PS5 - Galactic Purple</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/51+oLBCoA0L._AC_SX679_.jpg" alt="Dualsense Wireless Controller PS5 - Galactic Purple" />
+      <a class="product-link" href="https://amzn.to/3J2bWAp" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Xbox Wireless Controller – Carbon Black Series X|S, One, and Windows Devices</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/61SFyZxcinL._AC_SX679_.jpg" alt="Xbox Wireless Controller – Carbon Black" />
+      <a class="product-link" href="https://amzn.to/4ma6dY3" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Xbox Series X</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/51-kkNP6OcL._AC_SX679_.jpg" alt="Xbox Series X" />
+      <a class="product-link" href="https://amzn.to/4olDZeq" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">15" Wooden Folding Chess & Checkers Set - 2 in 1 Board Game with 3" King Staunton Pieces and 2 Extra Ladies</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/71wNB+pozaL._AC_SY300_SX300_QL70_ML2_.jpg" alt="15 inch Wooden Folding Chess & Checkers Set" />
+      <a class="product-link" href="https://amzn.to/45dWtER" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Jaques of London Draughts Board Game | 12" Foldable Draughts Set | Checkers & Draughts Game | Traditional Games | UK Family Company Since 1795</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/91BJj7dlMLL._AC_SX569_.jpg" alt="Jaques of London Draughts Board Game" />
+      <a class="product-link" href="https://amzn.to/451mj05" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Classic Ludo - Checkers for Children and Adults, Traditional Family Game, Foldable Board, Instructions Included (Ludo)</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/818Wmg-uIVL._AC_SX569_.jpg" alt="Classic Ludo - Checkers for Children and Adults" />
+      <a class="product-link" href="https://amzn.to/41qHiHc" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+    <div class="product">
+      <div class="product-title">Logica Puzzles Art. Tower of Hanoi - 9 Discs - Brain Teaser in Fine Wood</div>
+      <img class="product-img" src="https://m.media-amazon.com/images/I/61W6kvEDldL._AC_SX569_.jpg" alt="Tower of Hanoi - 9 Discs - Brain Teaser in Fine Wood" />
+      <a class="product-link" href="https://amzn.to/44ZEMtU" target="_blank" rel="noopener">Buy on Amazon</a>
+    </div>
+  </div>
+</body>
+</html>
